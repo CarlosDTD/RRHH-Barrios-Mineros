@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Search, Download, Upload, UserPlus, Edit, Calendar, Phone, IdCard, ChevronLeft, ChevronRight, History } from 'lucide-react';
 import PersonalForm from '../components/PersonalForm';
 import HistorialModal from '../components/HistorialModal';
+import ImportResultsModal from '../components/ImportResultsModal';
 
 const PersonalPage = () => {
   const [personal, setPersonal] = useState([]);
@@ -12,6 +13,8 @@ const PersonalPage = () => {
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [showHistorial, setShowHistorial] = useState(false);
+  const [showImportResults, setShowImportResults] = useState(false);
+  const [importResults, setImportResults] = useState(null);
   const [selectedPersonal, setSelectedPersonal] = useState(null);
   const fileInputRef = useRef(null);
 
@@ -99,7 +102,8 @@ const PersonalPage = () => {
     try {
       setLoading(true);
       const response = await axios.post('http://localhost:3001/api/personal/import', formData);
-      alert(`Importación completada: ${response.data.success} exitosos, ${response.data.errors} errores.`);
+      setImportResults(response.data);
+      setShowImportResults(true);
       fetchPersonal();
     } catch (error) {
       alert('Error al importar: ' + error.message);
@@ -349,6 +353,13 @@ const PersonalPage = () => {
         <HistorialModal 
           personal={selectedPersonal}
           onClose={() => { setShowHistorial(false); setSelectedPersonal(null); }}
+        />
+      )}
+
+      {showImportResults && (
+        <ImportResultsModal 
+          results={importResults}
+          onClose={() => { setShowImportResults(false); setImportResults(null); }}
         />
       )}
     </div>
