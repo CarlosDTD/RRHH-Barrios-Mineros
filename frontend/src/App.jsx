@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import PersonalPage from './pages/PersonalPage';
+import AsistenciasPage from './pages/AsistenciasPage';
 
 const Dashboard = () => <div className="p-6"><h1>Dashboard - Hospital Barrios Mineros</h1></div>;
 const Placeholder = ({ title }) => <div className="p-6"><h1>{title} - Próximamente</h1></div>;
@@ -15,7 +16,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/personal" element={<PersonalPage />} />
-            <Route path="/asistencias" element={<Placeholder title="Asistencias" />} />
+            <Route path="/asistencias" element={<AsistenciasPage />} />
             <Route path="/turnos" element={<Placeholder title="Turnos" />} />
             <Route path="/vacaciones" element={<Placeholder title="Vacaciones" />} />
             <Route path="/permisos" element={<Placeholder title="Permisos" />} />
