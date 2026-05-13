@@ -1,37 +1,24 @@
 # Proyecto: Sistema RRHH - Hospital Barrios Mineros (Oruro, Bolivia)
 
-## Estado del Proyecto - 12 de Mayo, 2026
+## Estado del Proyecto - 12 de Mayo, 2026 (Final de Sesión)
 
-### 1. Arquitectura Implementada
-- **Backend:** Node.js + Express (Arquitectura por capas: Modelos, Controladores, Rutas, Servicios).
-- **Frontend:** React + Vite + Tailwind CSS v4.
-- **Base de Datos:** PostgreSQL (Normalizada con tablas de catálogo).
+### 1. Arquitectura y Esquema
+- **Base de Datos:** Ampliada en `vinculos_laborales` con campos técnicos: `cargo_planilla`, `cargo_escala`, `nro_resumen_ejecutivo`.
+- **Backend:** `PersonalModel` y `ImportService` actualizados para soportar la gestión integral de datos de inventario.
 
 ### 2. Módulos Completados
-- **Gestión de Personal y Vínculos:**
-  - CRUD transaccional unificado.
-  - Búsqueda Global Avanzada y Filtros dinámicos.
-  - Módulo de Trayectoria Laboral con historial JSONB.
-- **Módulo de Importación Avanzada (NUEVO):**
-  - **Detección Dinámica de Encabezados:** Soporta archivos Excel con metadatos superiores y variaciones en nombres de columnas.
-  - **Procesamiento Multi-Hoja:** Importación automática de libros con múltiples pestañas (SEDES, MINISTERIO, CONTRATOS, etc.).
-  - **Catálogos Inteligentes:** Creación automática de nuevas profesiones en `cat_profesiones` durante la importación.
-  - **UI de Resultados:** Modal detallado que muestra conteo de éxitos y log de errores específico (CI, Hoja, Causa del fallo).
-  - **Integridad Referencial:** Mapeo automático de Expediciones, Fuentes de Financiamiento y Tipos de Personal (Ítem/Contrato).
+- **Gestión de Personal Avanzada:**
+  - Nueva "Ficha Técnica" en el frontend que permite editar todos los campos de identidad y laborales en una sola interfaz rápida.
+- **Módulo de Importación Pro:**
+  - Importación multi-hoja con detección dinámica de cabeceras.
+  - Creación dinámica de catálogos (Profesiones).
+  - Modal de reporte de errores detallado (CI, Hoja, Causa).
 
-### 3. Credenciales de Base de Datos
-- **DB Name:** `rrhh_barrios_mineros`
-- **User:** `postgres`
-- **Password:** `postgres`
-- **Host:** `localhost`
-- **Port:** `5432`
-
-### 4. Próximos Pasos (Pendientes)
-- [ ] Implementar el módulo de **Asistencias y Turnos**.
+### 3. Pendientes Prioritarios
+- [ ] Implementar el módulo de **Asistencias y Turnos** (Siguiente paso principal).
 - [ ] Desarrollar la gestión de **Vacaciones y Permisos**.
-- [ ] Implementar **Certificaciones y Memorándums**.
+- [ ] Mejorar la visualización de cargos técnicos en la tabla principal.
 
-### 5. Cómo ejecutar el proyecto
-- **Backend:** `cd backend && npm run dev` (Puerto 3001)
-- **Frontend:** `cd frontend && npm run dev` (Puerto 5173)
-- **Tests:** `cd backend && $env:NODE_ENV='test'; npx jest`
+### 4. Cómo ejecutar el proyecto
+- **Backend:** `cd backend && npm run dev`
+- **Frontend:** `cd frontend && npm run dev`

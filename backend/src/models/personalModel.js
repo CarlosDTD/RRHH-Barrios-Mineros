@@ -9,6 +9,9 @@ class PersonalModel {
         prof.nombre_profesion,
         vl.identificador_laboral,
         vl.cargo_actual,
+        vl.cargo_planilla,
+        vl.cargo_escala,
+        vl.nro_resumen_ejecutivo,
         vl.unidad_servicio,
         vl.fecha_ingreso,
         ff.nombre_fuente,
@@ -85,6 +88,7 @@ class PersonalModel {
         // Datos laborales
         establecimiento_id, tipo_personal_id, fuente_financiamiento_id,
         identificador_laboral, unidad_servicio, cargo_actual,
+        cargo_planilla, cargo_escala, nro_resumen_ejecutivo,
         carga_horaria, fecha_ingreso, fecha_institucionalizacion, observaciones
       } = data;
 
@@ -110,14 +114,16 @@ class PersonalModel {
         INSERT INTO vinculos_laborales (
           personal_id, establecimiento_id, tipo_personal_id, fuente_financiamiento_id,
           identificador_laboral, unidad_servicio, cargo_actual,
+          cargo_planilla, cargo_escala, nro_resumen_ejecutivo,
           carga_horaria, fecha_ingreso, fecha_institucionalizacion, observaciones
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
       `;
       const laboralValues = [
         personalId, establecimiento_id || null, tipo_personal_id || null, 
         fuente_financiamiento_id || null, identificador_laboral || null, 
-        unidad_servicio || null, cargo_actual || null, carga_horaria || null, 
-        fecha_ingreso || null, fecha_institucionalizacion || null, observaciones || null
+        unidad_servicio || null, cargo_actual || null, 
+        cargo_planilla || null, cargo_escala || null, nro_resumen_ejecutivo || null,
+        carga_horaria || null, fecha_ingreso || null, fecha_institucionalizacion || null, observaciones || null
       ];
 
       await client.query(laboralQuery, laboralValues);
@@ -152,6 +158,7 @@ class PersonalModel {
       const laboralFields = [
         'establecimiento_id', 'tipo_personal_id', 'fuente_financiamiento_id',
         'identificador_laboral', 'unidad_servicio', 'cargo_actual',
+        'cargo_planilla', 'cargo_escala', 'nro_resumen_ejecutivo',
         'carga_horaria', 'fecha_ingreso', 'fecha_institucionalizacion', 'observaciones'
       ];
 
