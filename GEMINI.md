@@ -1,27 +1,23 @@
 # Proyecto: Sistema RRHH - Hospital Barrios Mineros (Oruro, Bolivia)
 
-## Estado del Proyecto - 11 de Mayo, 2026
+## Estado del Proyecto - 12 de Mayo, 2026
 
 ### 1. Arquitectura Implementada
 - **Backend:** Node.js + Express (Arquitectura por capas: Modelos, Controladores, Rutas, Servicios).
 - **Frontend:** React + Vite + Tailwind CSS v4.
 - **Base de Datos:** PostgreSQL (Normalizada con tablas de catálogo).
 
-### 2. Módulos Completados (Gestión de Personal y Vínculos)
-- **Base de Datos:**
-  - Tablas: `personal`, `vinculos_laborales`, `historial_movimientos`, `establecimientos` y catálogos completos.
-  - Tabla `historial_movimientos` con soporte JSONB para trazabilidad de cambios.
-  - Script de inicialización actualizado con fuentes (TGN, HIPC, MINISTERIO, MUNICIPIO).
-- **Backend API:**
-  - CRUD transaccional unificado para Personal y Vínculos Laborales.
-  - Búsqueda Global Avanzada: Soporte multi-palabra para nombres/apellidos y filtro por Ítem.
-  - Filtros dinámicos por múltiples fuentes de financiamiento.
-  - Servicio de Exportación a Excel actualizado con 18 columnas (incluyendo datos laborales).
-  - Endpoint de Historial de Movimientos por empleado.
-- **Frontend UI:**
-    - Formulario unificado de Personal y Vínculo Laboral con secciones estructuradas.
-    - Grilla de personal con vista detallada de Cargo, Ítem y etiquetas de Fuente.
-    - **Módulo de Trayectoria Laboral**: Visualización de movimientos en línea de tiempo con comparativa de cambios.
+### 2. Módulos Completados
+- **Gestión de Personal y Vínculos:**
+  - CRUD transaccional unificado.
+  - Búsqueda Global Avanzada y Filtros dinámicos.
+  - Módulo de Trayectoria Laboral con historial JSONB.
+- **Módulo de Importación Avanzada (NUEVO):**
+  - **Detección Dinámica de Encabezados:** Soporta archivos Excel con metadatos superiores y variaciones en nombres de columnas.
+  - **Procesamiento Multi-Hoja:** Importación automática de libros con múltiples pestañas (SEDES, MINISTERIO, CONTRATOS, etc.).
+  - **Catálogos Inteligentes:** Creación automática de nuevas profesiones en `cat_profesiones` durante la importación.
+  - **UI de Resultados:** Modal detallado que muestra conteo de éxitos y log de errores específico (CI, Hoja, Causa del fallo).
+  - **Integridad Referencial:** Mapeo automático de Expediciones, Fuentes de Financiamiento y Tipos de Personal (Ítem/Contrato).
 
 ### 3. Credenciales de Base de Datos
 - **DB Name:** `rrhh_barrios_mineros`
@@ -30,11 +26,10 @@
 - **Host:** `localhost`
 - **Port:** `5432`
 
-### 4. Pendientes
+### 4. Próximos Pasos (Pendientes)
 - [ ] Implementar el módulo de **Asistencias y Turnos**.
 - [ ] Desarrollar la gestión de **Vacaciones y Permisos**.
 - [ ] Implementar **Certificaciones y Memorándums**.
-- [ ] Actualizar el servicio de **Importación de Excel** para soportar los nuevos campos de vínculos laborales.
 
 ### 5. Cómo ejecutar el proyecto
 - **Backend:** `cd backend && npm run dev` (Puerto 3001)
