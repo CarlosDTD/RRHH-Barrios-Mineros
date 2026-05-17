@@ -13,6 +13,7 @@ class ImportService {
     const { rows: fuentes } = await db.query('SELECT id, nombre_fuente FROM cat_fuentes_financiamiento');
     const { rows: tipos } = await db.query('SELECT id, nombre_tipo FROM cat_tipos_personal');
     const { rows: establecimientos } = await db.query('SELECT id, nombre_establecimiento FROM establecimientos');
+    const { rows: unidades } = await db.query('SELECT id, UPPER(nombre_unidad) as nombre_unidad FROM cat_unidades_servicios');
 
     // Mapeo de Establecimiento por defecto (HBM)
     const defaultEst = establecimientos.find(e => e.nombre_establecimiento.includes('Barrios Mineros')) || establecimientos[0];
@@ -83,6 +84,9 @@ class ImportService {
           const tipoPersonal = (row['N° ITEM'] || row['ITEM']) ? 'ÍTEM' : (row['CONTRATO'] ? 'CONTRATO' : 'CONSULTORÍA');
           const tipo = tipos.find(t => t.nombre_tipo === tipoPersonal);
 
+          const unidadName = (row['UNIDAD O SERVICIO DONDE TRABAJA '] || row['UNIDAD O SERVICIO\r\nDONDE TRABAJA'] || '').toString().trim().toUpperCase();
+          const unidad = unidades.find(u => u.nombre_unidad === unidadName);
+
           const personalData = {
             ci: ci,
             complemento: (row['COMPLEMENTO'] || '').toString().trim() || null,
@@ -100,6 +104,7 @@ class ImportService {
             establecimiento_id: defaultEst ? defaultEst.id : null,
             tipo_personal_id: tipo ? tipo.id : null,
             fuente_financiamiento_id: fuente ? fuente.id : null,
+            unidad_servicio_id: unidad ? unidad.id : null,
             identificador_laboral: (row['N° ITEM'] || row['ITEM'] || row['CONTRATO'])?.toString() || null,
             cargo_planilla: row['CARGO SEGÚN PLANILLA'] || row['CARGO S/G PLANILLAS/MEMORANDUM DE DESIGNACION '] || null,
             cargo_escala: row['CARGO SEGÚN ESCALA'] || null,
@@ -108,6 +113,7 @@ class ImportService {
             cargo_actual: row['CARGO ACTUAL QUE DESEMPEÑA EN LA INSTITUCION'] || row['CARGO ACTUAL QUE DESEMPEÑA EN LA INSTITUCIÓN'] || null,
             carga_horaria: row['CARGA HORARIA\r\nMT/TC'] || row['CARGA HORARIA MT/TC'] || null,
             fecha_ingreso: this.parseExcelDate(row['FECHA DE INGRESO A LA INSTITUCION CON ITEM (DD/MM/AAAA)'] || row['FECHA DE INGRESO AL SISTEMA DE SALUD (DD/MM/AAAA)']),
+            fecha_fin_contrato: this.parseExcelDate(row['FECHA FIN DE CONTRATO'] || row['FECHA FIN CONTRATO']),
             fecha_institucionalizacion: this.parseExcelDate(row['FECHA DE INSTITUCIONALIZACION (DD/MM/AAAA)']),
             observaciones: row['OBSERV.'] || row['OBSERVACIONES'] || null
           };

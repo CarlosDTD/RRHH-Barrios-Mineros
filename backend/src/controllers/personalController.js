@@ -7,7 +7,7 @@ const db = require('../config/db');
 
 const getAllPersonal = async (req, res) => {
   try {
-    const { nombre, ci, item, fuentes, page = 1, limit = 50 } = req.query;
+    const { nombre, ci, item, fuentes, page = 1, limit = 50, sort, order } = req.query;
     const offset = (page - 1) * limit;
     
     // fuentes puede venir como string separado por comas si se envía desde query params
@@ -18,6 +18,8 @@ const getAllPersonal = async (req, res) => {
       ci, 
       item,
       fuentes: fuentesArray,
+      sort,
+      order,
       limit: parseInt(limit), 
       offset: parseInt(offset) 
     });
@@ -86,8 +88,9 @@ const getCatalogos = async (req, res) => {
     const { rows: fuentes } = await db.query('SELECT * FROM cat_fuentes_financiamiento ORDER BY nombre_fuente');
     const { rows: tipos } = await db.query('SELECT * FROM cat_tipos_personal ORDER BY nombre_tipo');
     const { rows: establecimientos } = await db.query('SELECT * FROM establecimientos ORDER BY nombre_establecimiento');
+    const { rows: unidades_servicios } = await db.query('SELECT * FROM cat_unidades_servicios ORDER BY nombre_unidad');
     
-    res.json({ expediciones, profesiones, fuentes, tipos, establecimientos });
+    res.json({ expediciones, profesiones, fuentes, tipos, establecimientos, unidades_servicios });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

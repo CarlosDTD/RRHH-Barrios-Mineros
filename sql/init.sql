@@ -23,6 +23,11 @@ CREATE TABLE cat_fuentes_financiamiento (
     nombre_fuente VARCHAR(100) NOT NULL
 );
 
+CREATE TABLE cat_unidades_servicios (
+    id SERIAL PRIMARY KEY,
+    nombre_unidad VARCHAR(150) NOT NULL UNIQUE
+);
+
 -- Tablas Principales
 CREATE TABLE establecimientos (
     id SERIAL PRIMARY KEY,
@@ -54,11 +59,15 @@ CREATE TABLE vinculos_laborales (
     establecimiento_id INT REFERENCES establecimientos(id),
     tipo_personal_id INT REFERENCES cat_tipos_personal(id),
     fuente_financiamiento_id INT REFERENCES cat_fuentes_financiamiento(id),
-    identificador_laboral VARCHAR(100),
+    unidad_servicio_id INT REFERENCES cat_unidades_servicios(id),
     unidad_servicio VARCHAR(150),
     cargo_actual VARCHAR(150),
+    cargo_planilla VARCHAR(150),
+    cargo_escala VARCHAR(150),
+    nro_resumen_ejecutivo VARCHAR(100),
     carga_horaria VARCHAR(10),
     fecha_ingreso DATE,
+    fecha_fin_contrato DATE,
     fecha_institucionalizacion DATE,
     observaciones TEXT
 );
@@ -96,6 +105,33 @@ INSERT INTO cat_expediciones (sigla, nombre) VALUES
 ('TJ', 'Tarija'), ('PT', 'Potosí'), ('CH', 'Chuquisaca');
 
 INSERT INTO establecimientos (nombre_establecimiento) VALUES ('HBM - Hospital Barrios Mineros');
+
+-- Unidades y Servicios del Hospital
+INSERT INTO cat_unidades_servicios (nombre_unidad) VALUES
+('SERVICIO DE AMBULANCIA'),
+('SERVICIO DE ANESTESIOLOGIA'),
+('SERVICIO DE ATENCION TEMPRANA'),
+('SERVICIO DE CIRUGIA GENERAL'),
+('SERVICIO DE COCINA'),
+('SERVICIO DE EMERGENCIAS'),
+('SERVICIO DE ESTADISTICA'),
+('SERVICIO DE FISIOTERAPIA'),
+('SERVICIO DE GINECOLOGIA'),
+('SERVICIO DE LAVANDERIA'),
+('SERVICIO DE LIMPIEZA'),
+('SERVICIO DE MATERNIDAD'),
+('SERVICIO DE MEDICINA INTERNA'),
+('SERVICIO DE NEONATOLOGIA'),
+('SERVICIO DE NUTRICION'),
+('SERVICIO DE PEDIATRIA'),
+('SERVICIO DE PLANCHADO'),
+('SERVICIO DE PORTERIA'),
+('SERVICIO DE QUIROFANO Y CENTRAL DE ESTERILIZACION'),
+('SERVICIO DE SISTEMAS'),
+('SERVICIO DE TERAPIA INTERMEDIA'),
+('SERVICIO DE TRAUMATOLOGIA'),
+('SERVICIO UNIDAD DE HEMODIALISIS'),
+('AUXILIAR DE OFICINA');
 
 -- Tablas de Biometría
 CREATE TABLE biometrico_config (
