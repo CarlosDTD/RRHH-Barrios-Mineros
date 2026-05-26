@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const UsuarioModel = require('./usuarioModel');
 
 class PersonalModel {
   static async getAll(filters = {}) {
@@ -141,6 +142,8 @@ class PersonalModel {
       ];
 
       await client.query(laboralQuery, laboralValues);
+
+      await UsuarioModel.createFromPersonal(personalId, ci);
       
       await client.query('COMMIT');
       return { id: personalId, ...data };
