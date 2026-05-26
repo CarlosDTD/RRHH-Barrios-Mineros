@@ -145,3 +145,224 @@ CREATE TABLE historial_movimientos (
     motivo TEXT,
     fecha_movimiento TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- ============================================================
+-- MÓDULO DE CORRESPONDENCIA + AUTENTICACIÓN + ROLES
+-- ============================================================
+
+-- Tablas de Autenticación y Roles
+
+CREATE TABLE roles (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(50) UNIQUE NOT NULL,
+    descripcion VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE permisos (
+    id SERIAL PRIMARY KEY,
+    codigo VARCHAR(50) UNIQUE NOT NULL,
+    descripcion VARCHAR(255),
+    modulo VARCHAR(50) DEFAULT 'general',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE rol_permisos (
+    rol_id INT REFERENCES roles(id) ON DELETE CASCADE,
+    permiso_id INT REFERENCES permisos(id) ON DELETE CASCADE,
+    PRIMARY KEY (rol_id, permiso_id)
+);
+
+CREATE TABLE usuarios (
+    id SERIAL PRIMARY KEY,
+    personal_id INT REFERENCES personal(id) ON DELETE SET NULL,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    password_cambiado BOOLEAN DEFAULT false,
+    google_id VARCHAR(100),
+    email VARCHAR(100),
+    activo BOOLEAN DEFAULT true,
+    ultimo_acceso TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE usuario_roles (
+    usuario_id INT REFERENCES usuarios(id) ON DELETE CASCADE,
+    rol_id INT REFERENCES roles(id) ON DELETE CASCADE,
+    PRIMARY KEY (usuario_id, rol_id)
+);
+
+-- Tablas de Correspondencia
+
+CREATE TABLE cat_tipos_correspondencia (
+    id SERIAL PRIMARY KEY,
+    codigo VARCHAR(10) UNIQUE NOT NULL,
+    nombre VARCHAR(100) NOT NULL
+);
+
+CREATE TABLE cat_clasificaciones (
+    id SERIAL PRIMARY KEY,
+    codigo VARCHAR(20) UNIQUE NOT NULL,
+    nombre VARCHAR(100) NOT NULL
+);
+
+CREATE TABLE cat_etiquetas (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(50) UNIQUE NOT NULL,
+    color VARCHAR(7) DEFAULT '#3b82f6'
+);
+
+CREATE TABLE secuencia_hr (
+    gestion INT PRIMARY KEY,
+    ultimo_numero INT DEFAULT 0
+);
+
+CREATE TABLE configuracion_cite (
+    id INTEGER PRIMARY KEY DEFAULT 1,
+    hospital_sigla VARCHAR(10) NOT NULL DEFAULT 'HBM',
+    separador VARCHAR(5) NOT NULL DEFAULT '/',
+    formato TEXT NOT NULL DEFAULT '{SIGLA}/{AREA}/{TIPO}/N° {NRO}/{GESTION}',
+    gestion_actual INT NOT NULL DEFAULT EXTRACT(YEAR FROM CURRENT_DATE),
+    ultimo_numero INT NOT NULL DEFAULT 0,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT unica_fila CHECK (id = 1)
+);
+
+CREATE TABLE correspondencia (
+    id SERIAL PRIMARY KEY,
+    hr_correlativo INT NOT NULL,
+    gestion INT NOT NULL DEFAULT EXTRACT(YEAR FROM CURRENT_DATE),
+    cite VARCHAR(150),
+    tipo_id INT REFERENCES cat_tipos_correspondencia(id),
+    clasificacion_id INT REFERENCES cat_clasificaciones(id),
+    remitente_externo VARCHAR(255),
+    remitente_interno_id INT REFERENCES usuarios(id),
+    destinatario_original VARCHAR(255),
+    referencia TEXT NOT NULL,
+    pdf_original VARCHAR(500),
+    pdf_comprimido VARCHAR(500),
+    folios INT,
+    fecha_documento DATE NOT NULL,
+    fecha_recepcion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    usuario_recepcion_id INT REFERENCES usuarios(id),
+    estado VARCHAR(20) DEFAULT 'recibido',
+    observaciones TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(hr_correlativo, gestion)
+);
+
+CREATE TABLE correspondencia_etiquetas (
+    correspondencia_id INT REFERENCES correspondencia(id) ON DELETE CASCADE,
+    etiqueta_id INT REFERENCES cat_etiquetas(id) ON DELETE CASCADE,
+    PRIMARY KEY (correspondencia_id, etiqueta_id)
+);
+
+CREATE TABLE derivaciones (
+    id SERIAL PRIMARY KEY,
+    correspondencia_id INT REFERENCES correspondencia(id) ON DELETE CASCADE,
+    de_usuario_id INT REFERENCES usuarios(id),
+    para_usuario_id INT REFERENCES usuarios(id),
+    instruccion TEXT,
+    accion VARCHAR(50) DEFAULT 'derivar',
+    respuesta TEXT,
+    documento_respuesta_pdf VARCHAR(500),
+    fecha_derivacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_respuesta TIMESTAMP,
+    completada BOOLEAN DEFAULT false,
+    orden INT DEFAULT 1
+);
+
+-- Función para generar HR correlativo por gestión
+
+CREATE OR REPLACE FUNCTION next_hr(p_gestion INT DEFAULT NULL)
+RETURNS INT AS $$
+DECLARE
+    v_gestion INT;
+    v_next INT;
+BEGIN
+    v_gestion := COALESCE(p_gestion, EXTRACT(YEAR FROM CURRENT_DATE)::INT);
+
+    INSERT INTO secuencia_hr (gestion, ultimo_numero)
+    VALUES (v_gestion, 1)
+    ON CONFLICT (gestion)
+    DO UPDATE SET ultimo_numero = secuencia_hr.ultimo_numero + 1
+    RETURNING ultimo_numero INTO v_next;
+
+    RETURN v_next;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Datos iniciales: Roles, Catálogos y Configuración
+
+INSERT INTO roles (nombre, descripcion) VALUES
+('ADMIN', 'Administrador del sistema - acceso total'),
+('SECRETARIO', 'Secretaría - registra y deriva correspondencia'),
+('DIRECTOR', 'Director del hospital'),
+('JEFE_RRHH', 'Jefe de Recursos Humanos'),
+('AUXILIAR', 'Auxiliar de oficina');
+
+INSERT INTO permisos (codigo, descripcion, modulo) VALUES
+('correspondencia.ver', 'Ver correspondencia', 'correspondencia'),
+('correspondencia.crear', 'Registrar nueva correspondencia', 'correspondencia'),
+('correspondencia.editar', 'Editar correspondencia', 'correspondencia'),
+('correspondencia.derivar', 'Derivar correspondencia', 'correspondencia'),
+('correspondencia.responder', 'Responder derivaciones', 'correspondencia'),
+('correspondencia.eliminar', 'Eliminar correspondencia', 'correspondencia'),
+('usuarios.ver', 'Ver usuarios del sistema', 'usuarios'),
+('usuarios.gestionar', 'Gestionar usuarios y roles', 'usuarios'),
+('config.ver', 'Ver configuración del sistema', 'config'),
+('config.editar', 'Editar configuración del sistema', 'config');
+
+-- Asignar permisos a roles
+INSERT INTO rol_permisos (rol_id, permiso_id)
+SELECT r.id, p.id FROM roles r, permisos p WHERE r.nombre = 'ADMIN';
+
+INSERT INTO rol_permisos (rol_id, permiso_id)
+SELECT r.id, p.id FROM roles r, permisos p
+WHERE r.nombre = 'SECRETARIO'
+AND p.codigo IN ('correspondencia.ver', 'correspondencia.crear', 'correspondencia.editar',
+                 'correspondencia.derivar', 'correspondencia.responder', 'correspondencia.eliminar');
+
+INSERT INTO rol_permisos (rol_id, permiso_id)
+SELECT r.id, p.id FROM roles r, permisos p
+WHERE r.nombre IN ('DIRECTOR', 'JEFE_RRHH')
+AND p.codigo IN ('correspondencia.ver', 'correspondencia.derivar', 'correspondencia.responder');
+
+INSERT INTO rol_permisos (rol_id, permiso_id)
+SELECT r.id, p.id FROM roles r, permisos p
+WHERE r.nombre = 'AUXILIAR'
+AND p.codigo IN ('correspondencia.ver', 'correspondencia.responder');
+
+INSERT INTO cat_tipos_correspondencia (codigo, nombre) VALUES
+('REC', 'Recepcionada'),
+('INT', 'Interna'),
+('EMIT', 'Emitida');
+
+INSERT INTO cat_clasificaciones (codigo, nombre) VALUES
+('SOL', 'Solicitud'),
+('INF', 'Informe'),
+('MEM', 'Memorándum'),
+('OFI', 'Oficio'),
+('CIR', 'Circular'),
+('NOT', 'Nota'),
+('RES', 'Resolución'),
+('ACT', 'Acta');
+
+INSERT INTO cat_etiquetas (nombre, color) VALUES
+('Urgente', '#ef4444'),
+('Confidencial', '#dc2626'),
+('Reservado', '#f59e0b'),
+('RRHH', '#3b82f6'),
+('Dirección', '#8b5cf6'),
+('Secretaría', '#10b981'),
+('Administrativo', '#6366f1'),
+('Personal', '#ec4899');
+
+INSERT INTO configuracion_cite (id, hospital_sigla, separador, formato, gestion_actual, ultimo_numero)
+VALUES (1, 'HBM', '/', '{SIGLA}/{AREA}/{TIPO}/N° {NRO}/{GESTION}', EXTRACT(YEAR FROM CURRENT_DATE)::INT, 0)
+ON CONFLICT (id) DO UPDATE SET gestion_actual = EXCLUDED.gestion_actual;
+
+-- El usuario admin por defecto se crea mediante: npm run seed (backend/src/seed/seedCorrespondencia.js)
+-- Credenciales: admin / admin (exige cambio de contraseña en primer login)

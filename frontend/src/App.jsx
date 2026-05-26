@@ -14,6 +14,7 @@ import CorrespondenciaForm from './pages/CorrespondenciaForm';
 import CorrespondenciaDetail from './pages/CorrespondenciaDetail';
 import BandejaPage from './pages/BandejaPage';
 import ConfiguracionPage from './pages/ConfiguracionPage';
+import AdminUsuariosPage from './pages/AdminUsuariosPage';
 
 const Placeholder = ({ title }) => (
   <div className="p-8 bg-slate-50 min-h-screen">
@@ -112,6 +113,7 @@ function AppContent() {
           <Route path="/correspondencia/nueva" element={<ProtectedRoute roles={['ADMIN', 'SECRETARIO']}><CorrespondenciaForm /></ProtectedRoute>} />
           <Route path="/correspondencia/:id" element={<ProtectedRoute roles={['ADMIN', 'SECRETARIO', 'DIRECTOR', 'JEFE_RRHH', 'AUXILIAR']}><CorrespondenciaDetail /></ProtectedRoute>} />
           <Route path="/correspondencia/bandeja" element={<ProtectedRoute roles={['ADMIN', 'SECRETARIO', 'DIRECTOR', 'JEFE_RRHH', 'AUXILIAR']}><BandejaPage /></ProtectedRoute>} />
+          <Route path="/admin/usuarios" element={<ProtectedRoute roles={['ADMIN']}><AdminUsuariosPage /></ProtectedRoute>} />
           <Route path="/admin/config" element={<ProtectedRoute roles={['ADMIN']}><ConfiguracionPage /></ProtectedRoute>} />
         </Routes>
       </main>

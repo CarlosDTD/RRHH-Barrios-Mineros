@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { 
   Users, Calendar, Clock, Plane, FileBadge, 
   MessageSquare, RefreshCw, LayoutDashboard, Cpu,
-  FileSpreadsheet, FileText, Inbox, Settings, LogOut
+  FileSpreadsheet, FileText, Inbox, Settings, LogOut, Shield
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -29,6 +29,7 @@ const Sidebar = () => {
   ];
 
   const adminItems = [
+    { name: 'Usuarios y Roles', icon: <Shield size={20} />, path: '/admin/usuarios' },
     { name: 'Configuración', icon: <Settings size={20} />, path: '/admin/config' },
   ];
 
