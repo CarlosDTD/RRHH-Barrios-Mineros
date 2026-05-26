@@ -63,7 +63,21 @@ class PersonalModel {
       params.push(...filters.fuentes);
     }
 
-    query += ' ORDER BY p.id DESC';
+    const sortColumns = {
+      ci: 'p.ci',
+      nombre: 'p.apellido_paterno',
+      cargo: 'vl.cargo_actual',
+      profesion: 'prof.nombre_profesion',
+      telefono: 'p.telefono',
+      fecha_ingreso: 'vl.fecha_ingreso',
+    };
+
+    if (filters.sort && sortColumns[filters.sort]) {
+      const order = filters.order === 'ASC' ? 'ASC' : 'DESC';
+      query += ` ORDER BY ${sortColumns[filters.sort]} ${order}`;
+    } else {
+      query += ' ORDER BY p.id DESC';
+    }
 
     if (filters.limit && filters.offset !== undefined) {
       params.push(filters.limit);

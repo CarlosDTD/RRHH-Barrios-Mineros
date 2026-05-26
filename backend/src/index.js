@@ -6,6 +6,8 @@ const personalRoutes = require('./routes/personalRoutes');
 const asistenciaRoutes = require('./routes/asistenciaRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const biometricoRoutes = require('./routes/biometricoRoutes');
+const reporteRoutes = require('./routes/reporteRoutes');
+const { startEstadoJob } = require('./cron/estadoJob');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -19,6 +21,9 @@ app.use('/api/personal', personalRoutes);
 app.use('/api/asistencia', asistenciaRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/biometrico', biometricoRoutes);
+
+// Routes
+app.use('/api/reportes', reporteRoutes);
 
 // Health Check
 app.get('/', (req, res) => {

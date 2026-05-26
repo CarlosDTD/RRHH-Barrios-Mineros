@@ -3,16 +3,25 @@ import { X } from 'lucide-react';
 
 const PersonalForm = ({ personal, catalogos, onClose, onSave }) => {
   // Asegurarse de que las fechas se formateen correctamente para el input date (YYYY-MM-DD)
+  const today = new Date().toISOString().split('T')[0];
+
   const formatDateForInput = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '';
     return date.toISOString().split('T')[0];
+  };
+
+  const getSelectedFuenteName = (fuenteId) => {
+    const fuente = catalogos.fuentes?.find(f => f.id === parseInt(fuenteId));
+    return fuente ? fuente.nombre_fuente.toUpperCase() : '';
   };
 
   const [formData, setFormData] = useState(personal ? {
     ...personal,
     fecha_nacimiento: formatDateForInput(personal.fecha_nacimiento),
     fecha_ingreso: formatDateForInput(personal.fecha_ingreso),
+    fecha_fin_contrato: formatDateForInput(personal.fecha_fin_contrato),
     fecha_institucionalizacion: formatDateForInput(personal.fecha_institucionalizacion)
   } : {
     ci: '',
@@ -27,15 +36,18 @@ const PersonalForm = ({ personal, catalogos, onClose, onSave }) => {
     fecha_nacimiento: '',
     profesion_id: '',
     telefono: '',
+    biometrico_id: '',
     // Datos laborales
     establecimiento_id: '',
     tipo_personal_id: '',
     fuente_financiamiento_id: '',
     identificador_laboral: '',
+    unidad_servicio_id: '',
     unidad_servicio: '',
     cargo_actual: '',
     carga_horaria: '',
-    fecha_ingreso: '',
+    fecha_ingreso: today,
+    fecha_fin_contrato: '',
     fecha_institucionalizacion: '',
     cargo_planilla: '',
     cargo_escala: '',
@@ -43,10 +55,29 @@ const PersonalForm = ({ personal, catalogos, onClose, onSave }) => {
     observaciones: ''
   });
 
+  const [errors, setErrors] = useState({});
+
+  const selectedFuenteName = getSelectedFuenteName(formData.fuente_financiamiento_id);
+  const esMunicipio = selectedFuenteName === 'MUNICIPIO';
+
+  const validate = () => {
+    const newErrors = {};
+    if (!formData.ci) newErrors.ci = 'El CI es obligatorio';
+    if (!formData.primer_nombre) newErrors.primer_nombre = 'El primer nombre es obligatorio';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!validate()) return;
     onSave(formData);
   };
+
+  const inputClass = (field) => `w-full px-4 py-2.5 bg-white border ${errors[field] ? 'border-rose-400 ring-2 ring-rose-100' : 'border-slate-200'} rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none text-sm font-bold text-slate-700 shadow-sm transition-all`;
+  const inputClassEmerald = (field) => `w-full px-4 py-2.5 bg-white border ${errors[field] ? 'border-rose-400 ring-2 ring-rose-100' : 'border-emerald-100'} rounded-xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none text-sm font-bold text-slate-700 shadow-sm transition-all`;
+  const labelClass = 'block text-[10px] font-black text-slate-400 uppercase mb-1.5 ml-1';
+  const labelClassEmerald = 'block text-[10px] font-black text-emerald-600 uppercase mb-1.5 ml-1';
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
@@ -74,12 +105,12 @@ const PersonalForm = ({ personal, catalogos, onClose, onSave }) => {
               
               <div className="grid grid-cols-12 gap-5">
                 <div className="col-span-4">
-                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 ml-1">Documento de Identidad (CI) *</label>
+                  <label className={labelClass}>Documento de Identidad (CI) *</label>
                   <div className="flex gap-2">
                     <input
                       required
                       placeholder="Número"
-                      className="flex-1 px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none text-sm font-bold text-slate-700 shadow-sm transition-all"
+                      className={inputClass('ci')}
                       value={formData.ci}
                       onChange={(e) => setFormData({...formData, ci: e.target.value})}
                     />
@@ -98,75 +129,86 @@ const PersonalForm = ({ personal, catalogos, onClose, onSave }) => {
                       {catalogos.expediciones?.map(e => <option key={e.id} value={e.id}>{e.sigla}</option>)}
                     </select>
                   </div>
+                  {errors.ci && <p className="text-rose-500 text-xs mt-1 ml-1">{errors.ci}</p>}
                 </div>
 
                 <div className="col-span-4">
-                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 ml-1">Primer Nombre *</label>
+                  <label className={labelClass}>Primer Nombre *</label>
                   <input
                     required
-                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none text-sm font-bold text-slate-700 shadow-sm transition-all"
+                    className={inputClass('primer_nombre')}
                     value={formData.primer_nombre}
                     onChange={(e) => setFormData({...formData, primer_nombre: e.target.value})}
                   />
+                  {errors.primer_nombre && <p className="text-rose-500 text-xs mt-1 ml-1">{errors.primer_nombre}</p>}
                 </div>
 
                 <div className="col-span-4">
-                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 ml-1">Segundo Nombre</label>
+                  <label className={labelClass}>Segundo Nombre</label>
                   <input
-                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none text-sm font-bold text-slate-700 shadow-sm transition-all"
+                    className={inputClass()}
                     value={formData.segundo_nombre || ''}
                     onChange={(e) => setFormData({...formData, segundo_nombre: e.target.value})}
                   />
                 </div>
 
                 <div className="col-span-4">
-                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 ml-1">Apellido Paterno</label>
+                  <label className={labelClass}>Apellido Paterno</label>
                   <input
-                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none text-sm font-bold text-slate-700 shadow-sm transition-all"
+                    className={inputClass()}
                     value={formData.apellido_paterno || ''}
                     onChange={(e) => setFormData({...formData, apellido_paterno: e.target.value})}
                   />
                 </div>
 
                 <div className="col-span-4">
-                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 ml-1">Apellido Materno</label>
+                  <label className={labelClass}>Apellido Materno</label>
                   <input
-                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none text-sm font-bold text-slate-700 shadow-sm transition-all"
+                    className={inputClass()}
                     value={formData.apellido_materno || ''}
                     onChange={(e) => setFormData({...formData, apellido_materno: e.target.value})}
                   />
                 </div>
 
                 <div className="col-span-4">
-                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 ml-1">Apellido de Casada</label>
+                  <label className={labelClass}>Apellido de Casada</label>
                   <input
-                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none text-sm font-bold text-slate-700 shadow-sm transition-all"
+                    className={inputClass()}
                     value={formData.apellido_casada || ''}
                     onChange={(e) => setFormData({...formData, apellido_casada: e.target.value})}
                   />
                 </div>
 
                 <div className="col-span-3">
-                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 ml-1">Fecha de Nacimiento</label>
+                  <label className={labelClass}>Fecha de Nacimiento</label>
                   <input
                     type="date"
-                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none text-sm font-bold text-slate-700 shadow-sm transition-all"
+                    className={inputClass()}
                     value={formData.fecha_nacimiento}
                     onChange={(e) => setFormData({...formData, fecha_nacimiento: e.target.value})}
                   />
                 </div>
 
                 <div className="col-span-3">
-                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 ml-1">Número de Teléfono</label>
+                  <label className={labelClass}>Número de Teléfono</label>
                   <input
-                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none text-sm font-bold text-slate-700 shadow-sm transition-all"
+                    className={inputClass()}
                     value={formData.telefono || ''}
                     onChange={(e) => setFormData({...formData, telefono: e.target.value})}
                   />
                 </div>
 
-                <div className="col-span-6">
-                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-1.5 ml-1">Profesión / Grado Académico</label>
+                <div className="col-span-3">
+                  <label className={labelClass}>ID Biométrico</label>
+                  <input
+                    className={inputClass()}
+                    value={formData.biometrico_id || ''}
+                    onChange={(e) => setFormData({...formData, biometrico_id: e.target.value})}
+                  />
+                </div>
+
+                <div className="col-span-3">
+                  <label className={labelClass}>Profesión / Grado Académico</label>
                   <select 
                     className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl outline-none text-sm font-bold text-slate-700 shadow-sm cursor-pointer"
                     value={formData.profesion_id || ''}
@@ -187,10 +229,10 @@ const PersonalForm = ({ personal, catalogos, onClose, onSave }) => {
               </div>
 
               <div className="grid grid-cols-12 gap-5 bg-emerald-50/20 p-6 rounded-2xl border border-emerald-100">
-                <div className="col-span-6">
-                  <label className="block text-[10px] font-black text-emerald-600 uppercase mb-1.5 ml-1">Establecimiento de Salud</label>
+                <div className="col-span-4">
+                  <label className={labelClassEmerald}>Establecimiento de Salud</label>
                   <select 
-                    className="w-full px-4 py-2.5 bg-white border border-emerald-100 rounded-xl outline-none text-sm font-bold text-slate-700 shadow-sm"
+                    className="w-full px-4 py-2.5 bg-white border border-emerald-100 rounded-xl outline-none text-sm font-bold text-slate-700 shadow-sm cursor-pointer"
                     value={formData.establecimiento_id || ''}
                     onChange={(e) => setFormData({...formData, establecimiento_id: e.target.value})}
                   >
@@ -200,9 +242,9 @@ const PersonalForm = ({ personal, catalogos, onClose, onSave }) => {
                 </div>
 
                 <div className="col-span-3">
-                  <label className="block text-[10px] font-black text-emerald-600 uppercase mb-1.5 ml-1">Tipo de Personal</label>
+                  <label className={labelClassEmerald}>Tipo de Personal</label>
                   <select 
-                    className="w-full px-4 py-2.5 bg-white border border-emerald-100 rounded-xl outline-none text-sm font-bold text-slate-700 shadow-sm"
+                    className="w-full px-4 py-2.5 bg-white border border-emerald-100 rounded-xl outline-none text-sm font-bold text-slate-700 shadow-sm cursor-pointer"
                     value={formData.tipo_personal_id || ''}
                     onChange={(e) => setFormData({...formData, tipo_personal_id: e.target.value})}
                   >
@@ -212,9 +254,9 @@ const PersonalForm = ({ personal, catalogos, onClose, onSave }) => {
                 </div>
 
                 <div className="col-span-3">
-                  <label className="block text-[10px] font-black text-emerald-600 uppercase mb-1.5 ml-1">Fuente de Financiamiento</label>
+                  <label className={labelClassEmerald}>Fuente de Financiamiento</label>
                   <select 
-                    className="w-full px-4 py-2.5 bg-white border border-emerald-100 rounded-xl outline-none text-sm font-bold text-slate-700 shadow-sm"
+                    className="w-full px-4 py-2.5 bg-white border border-emerald-100 rounded-xl outline-none text-sm font-bold text-slate-700 shadow-sm cursor-pointer"
                     value={formData.fuente_financiamiento_id || ''}
                     onChange={(e) => setFormData({...formData, fuente_financiamiento_id: e.target.value})}
                   >
@@ -223,99 +265,130 @@ const PersonalForm = ({ personal, catalogos, onClose, onSave }) => {
                   </select>
                 </div>
 
-                <div className="col-span-3">
-                  <label className="block text-[10px] font-black text-emerald-600 uppercase mb-1.5 ml-1">N° Ítem / Contrato</label>
+                <div className="col-span-2">
+                  <label className={labelClassEmerald}>N° Ítem / Contrato</label>
                   <input
                     placeholder="Ej. 42004"
-                    className="w-full px-4 py-2.5 bg-white border border-emerald-100 rounded-xl focus:ring-4 focus:ring-emerald-500/10 outline-none text-sm font-black text-blue-600 shadow-sm transition-all"
+                    className={inputClassEmerald()}
                     value={formData.identificador_laboral || ''}
                     onChange={(e) => setFormData({...formData, identificador_laboral: e.target.value})}
                   />
                 </div>
 
-                <div className="col-span-9">
-                  <label className="block text-[10px] font-black text-emerald-600 uppercase mb-1.5 ml-1">Cargo Actual (Funcional)</label>
+                <div className="col-span-6">
+                  <label className={labelClassEmerald}>Unidad o Servicio</label>
+                  <select 
+                    className="w-full px-4 py-2.5 bg-white border border-emerald-100 rounded-xl outline-none text-sm font-bold text-slate-700 shadow-sm cursor-pointer"
+                    value={formData.unidad_servicio_id || ''}
+                    onChange={(e) => {
+                      const selected = catalogos.unidades_servicios?.find(u => u.id === parseInt(e.target.value));
+                      setFormData({
+                        ...formData, 
+                        unidad_servicio_id: e.target.value,
+                        unidad_servicio: selected ? selected.nombre_unidad : ''
+                      });
+                    }}
+                  >
+                    <option value="">Seleccionar unidad...</option>
+                    {catalogos.unidades_servicios?.map(u => <option key={u.id} value={u.id}>{u.nombre_unidad}</option>)}
+                  </select>
+                </div>
+
+                <div className="col-span-6">
+                  <label className={labelClassEmerald}>Cargo Actual (Funcional)</label>
                   <input
                     placeholder="Ej. MÉDICO ESPECIALISTA..."
-                    className="w-full px-4 py-2.5 bg-white border border-emerald-100 rounded-xl focus:ring-4 focus:ring-emerald-500/10 outline-none text-sm font-bold text-slate-700 shadow-sm transition-all"
+                    className={inputClassEmerald()}
                     value={formData.cargo_actual || ''}
                     onChange={(e) => setFormData({...formData, cargo_actual: e.target.value})}
                   />
                 </div>
 
-                {/* Campos Nuevos */}
                 <div className="col-span-4">
-                  <label className="block text-[10px] font-black text-emerald-600 uppercase mb-1.5 ml-1">Cargo según Planilla</label>
+                  <label className={labelClassEmerald}>Cargo según Planilla</label>
                   <input
-                    className="w-full px-4 py-2.5 bg-white border border-emerald-100 rounded-xl focus:ring-4 focus:ring-emerald-500/10 outline-none text-sm font-bold text-slate-700 shadow-sm transition-all"
+                    className={inputClassEmerald()}
                     value={formData.cargo_planilla || ''}
                     onChange={(e) => setFormData({...formData, cargo_planilla: e.target.value})}
                   />
                 </div>
 
-                <div className="col-span-4">
-                  <label className="block text-[10px] font-black text-emerald-600 uppercase mb-1.5 ml-1">Cargo según Escala</label>
-                  <input
-                    className="w-full px-4 py-2.5 bg-white border border-emerald-100 rounded-xl focus:ring-4 focus:ring-emerald-500/10 outline-none text-sm font-bold text-slate-700 shadow-sm transition-all"
-                    value={formData.cargo_escala || ''}
-                    onChange={(e) => setFormData({...formData, cargo_escala: e.target.value})}
-                  />
-                </div>
+                {!esMunicipio && (
+                  <>
+                    <div className="col-span-4">
+                      <label className={labelClassEmerald}>Cargo según Escala</label>
+                      <input
+                        className={inputClassEmerald()}
+                        value={formData.cargo_escala || ''}
+                        onChange={(e) => setFormData({...formData, cargo_escala: e.target.value})}
+                      />
+                    </div>
 
-                <div className="col-span-4">
-                  <label className="block text-[10px] font-black text-emerald-600 uppercase mb-1.5 ml-1">N° Resumen Ejecutivo</label>
-                  <input
-                    className="w-full px-4 py-2.5 bg-white border border-emerald-100 rounded-xl focus:ring-4 focus:ring-emerald-500/10 outline-none text-sm font-bold text-slate-700 shadow-sm transition-all"
-                    value={formData.nro_resumen_ejecutivo || ''}
-                    onChange={(e) => setFormData({...formData, nro_resumen_ejecutivo: e.target.value})}
-                  />
-                </div>
+                    <div className="col-span-4">
+                      <label className={labelClassEmerald}>N° Resumen Ejecutivo</label>
+                      <input
+                        className={inputClassEmerald()}
+                        value={formData.nro_resumen_ejecutivo || ''}
+                        onChange={(e) => setFormData({...formData, nro_resumen_ejecutivo: e.target.value})}
+                      />
+                    </div>
+                  </>
+                )}
 
-                <div className="col-span-6">
-                  <label className="block text-[10px] font-black text-emerald-600 uppercase mb-1.5 ml-1">Unidad o Servicio</label>
-                  <input
-                    className="w-full px-4 py-2.5 bg-white border border-emerald-100 rounded-xl focus:ring-4 focus:ring-emerald-500/10 outline-none text-sm font-bold text-slate-700 shadow-sm transition-all"
-                    value={formData.unidad_servicio || ''}
-                    onChange={(e) => setFormData({...formData, unidad_servicio: e.target.value})}
-                  />
-                </div>
+                {esMunicipio && (
+                  <div className="col-span-8">
+                    <div className="flex items-center gap-2 px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-xl">
+                      <span className="text-amber-600 text-xs font-bold">MUNICIPIO: No requiere cargo según escala ni resumen ejecutivo</span>
+                    </div>
+                  </div>
+                )}
 
                 <div className="col-span-2">
-                  <label className="block text-[10px] font-black text-emerald-600 uppercase mb-1.5 ml-1">Carga Horaria</label>
+                  <label className={labelClassEmerald}>Carga Horaria</label>
                   <input
                     placeholder="MT / TC"
-                    className="w-full px-4 py-2.5 bg-white border border-emerald-100 rounded-xl focus:ring-4 focus:ring-emerald-500/10 outline-none text-sm font-bold text-slate-700 shadow-sm transition-all text-center"
+                    className={`${inputClassEmerald()} text-center`}
                     value={formData.carga_horaria || ''}
                     onChange={(e) => setFormData({...formData, carga_horaria: e.target.value})}
                   />
                 </div>
 
                 <div className="col-span-2">
-                  <label className="block text-[10px] font-black text-emerald-600 uppercase mb-1.5 ml-1">F. Ingreso</label>
+                  <label className={labelClassEmerald}>F. Ingreso</label>
                   <input
                     type="date"
-                    className="w-full px-4 py-2.5 bg-white border border-emerald-100 rounded-xl focus:ring-4 focus:ring-emerald-500/10 outline-none text-sm font-bold text-slate-700 shadow-sm transition-all"
+                    className={inputClassEmerald()}
                     value={formData.fecha_ingreso}
                     onChange={(e) => setFormData({...formData, fecha_ingreso: e.target.value})}
                   />
                 </div>
 
                 <div className="col-span-2">
-                  <label className="block text-[10px] font-black text-emerald-600 uppercase mb-1.5 ml-1">F. Instituc.</label>
+                  <label className={labelClassEmerald}>F. Fin Contrato</label>
                   <input
                     type="date"
-                    className="w-full px-4 py-2.5 bg-white border border-emerald-100 rounded-xl focus:ring-4 focus:ring-emerald-500/10 outline-none text-sm font-bold text-slate-700 shadow-sm transition-all"
+                    className={inputClassEmerald()}
+                    value={formData.fecha_fin_contrato || ''}
+                    onChange={(e) => setFormData({...formData, fecha_fin_contrato: e.target.value})}
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <label className={labelClassEmerald}>F. Instituc.</label>
+                  <input
+                    type="date"
+                    className={inputClassEmerald()}
                     value={formData.fecha_institucionalizacion}
                     onChange={(e) => setFormData({...formData, fecha_institucionalizacion: e.target.value})}
                   />
                 </div>
 
                 <div className="col-span-12">
-                  <label className="block text-[10px] font-black text-emerald-600 uppercase mb-1.5 ml-1">Observaciones Generales</label>
+                  <label className={labelClassEmerald}>Observaciones Generales</label>
                   <textarea
                     rows="2"
                     placeholder="Anotaciones adicionales sobre el vínculo laboral..."
-                    className="w-full px-4 py-2.5 bg-white border border-emerald-100 rounded-xl focus:ring-4 focus:ring-emerald-500/10 outline-none text-sm font-medium text-slate-700 shadow-sm transition-all"
+                    className={inputClassEmerald()}
                     value={formData.observaciones || ''}
                     onChange={(e) => setFormData({...formData, observaciones: e.target.value})}
                   ></textarea>

@@ -5,6 +5,7 @@ import PersonalPage from './pages/PersonalPage';
 import AsistenciasPage from './pages/AsistenciasPage';
 import BiometricoPage from './pages/BiometricoPage';
 import Dashboard from './pages/Dashboard';
+import ReportesPage from './pages/ReportesPage';
 
 const Placeholder = ({ title }) => (
   <div className="p-8 bg-slate-50 min-h-screen">
@@ -39,6 +40,7 @@ function App() {
             <Route path="/certificaciones" element={<Placeholder title="Certificaciones" />} />
             <Route path="/comunicados" element={<Placeholder title="Comunicados/Memorándums" />} />
             <Route path="/reemplazos" element={<Placeholder title="Reemplazos" />} />
+            <Route path="/reportes" element={<ReportesPage />} />
           </Routes>
         </main>
       </div>

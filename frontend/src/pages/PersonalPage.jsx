@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { 
   Search, Download, Upload, UserPlus, Edit, Calendar, Phone, IdCard, 
-  ChevronLeft, ChevronRight, History, AlertCircle 
+  ChevronLeft, ChevronRight, History, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown 
 } from 'lucide-react';
 import PersonalForm from '../components/PersonalForm';
 import HistorialModal from '../components/HistorialModal';
@@ -20,6 +20,7 @@ const PersonalPage = () => {
   const [showImportResults, setShowImportResults] = useState(false);
   const [importResults, setImportResults] = useState(null);
   const [selectedPersonal, setSelectedPersonal] = useState(null);
+  const [sortConfig, setSortConfig] = useState({ column: null, direction: null });
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -35,17 +36,24 @@ const PersonalPage = () => {
     return () => clearTimeout(timer);
   }, [filters]);
 
+  useEffect(() => {
+    fetchPersonal(1);
+  }, [sortConfig]);
+
   const fetchPersonal = async (page = 1) => {
     setLoading(true);
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/personal`, { 
-        params: { 
-          ...filters, 
-          fuentes: filters.fuentes.join(','),
-          page, 
-          limit: 50 
-        } 
-      });
+      const params = { 
+        ...filters, 
+        fuentes: filters.fuentes.join(','),
+        page, 
+        limit: 50 
+      };
+      if (sortConfig.column) {
+        params.sort = sortConfig.column;
+        params.order = sortConfig.direction;
+      }
+      const response = await axios.get(`${API_BASE_URL}/api/personal`, { params });
       setPersonal(response.data.data);
       setPagination(response.data.pagination);
     } catch (error) {
@@ -62,6 +70,18 @@ const PersonalPage = () => {
     } catch (error) {
       console.error('Error fetching catalogos:', error);
     }
+  };
+
+  const handleSort = (column) => {
+    setSortConfig(prev => {
+      if (prev.column !== column) {
+        return { column, direction: 'ASC' };
+      }
+      if (prev.direction === 'ASC') {
+        return { column, direction: 'DESC' };
+      }
+      return { column: null, direction: null };
+    });
   };
 
   const handleFuenteToggle = (id) => {
@@ -229,12 +249,12 @@ const PersonalPage = () => {
           <table className="w-full text-left border-collapse">
             <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10 shadow-sm">
               <tr>
-                <th className="px-6 py-4 font-semibold text-slate-700 text-sm bg-slate-50">CI / Doc.</th>
-                <th className="px-6 py-4 font-semibold text-slate-700 text-sm bg-slate-50">Apellidos y Nombres</th>
-                <th className="px-6 py-4 font-semibold text-slate-700 text-sm bg-slate-50">Información Laboral</th>
-                <th className="px-6 py-4 font-semibold text-slate-700 text-sm bg-slate-50">Profesión</th>
-                <th className="px-6 py-4 font-semibold text-slate-700 text-sm bg-slate-50">Contacto</th>
-                <th className="px-6 py-4 font-semibold text-slate-700 text-sm text-right bg-slate-50">Acciones</th>
+                <SortableHeader column="ci" label="CI / Doc." sortConfig={sortConfig} onSort={handleSort} />
+                <SortableHeader column="nombre" label="Apellidos y Nombres" sortConfig={sortConfig} onSort={handleSort} />
+                <SortableHeader column="cargo" label="Información Laboral" sortConfig={sortConfig} onSort={handleSort} />
+                <SortableHeader column="profesion" label="Profesión" sortConfig={sortConfig} onSort={handleSort} />
+                <SortableHeader column="telefono" label="Contacto" sortConfig={sortConfig} onSort={handleSort} />
+                <th className="px-6 py-4 font-semibold text-slate-700 text-sm bg-slate-50 text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -247,7 +267,12 @@ const PersonalPage = () => {
                 </td></tr>
               ) : personal.length > 0 ? (
                 personal.map((p) => (
-                  <tr key={p.id} className="hover:bg-slate-50/80 transition-colors group">
+                  <tr 
+                    key={p.id} 
+                    className="hover:bg-slate-50/80 transition-colors group cursor-pointer"
+                    onDoubleClick={() => { setSelectedPersonal(p); setShowForm(true); }}
+                    title="Doble clic para editar"
+                  >
                     <td className="px-6 py-4">
                       <div className="font-medium text-slate-800">
                         {p.ci} {p.complemento ? `-${p.complemento}` : ''}
@@ -367,6 +392,29 @@ const PersonalPage = () => {
         />
       )}
     </div>
+  );
+};
+
+const SortableHeader = ({ column, label, sortConfig, onSort }) => {
+  const isActive = sortConfig.column === column;
+  const isDefault = sortConfig.column === null;
+
+  const getIcon = () => {
+    if (isActive && sortConfig.direction === 'ASC') return <ArrowUp size={14} className="text-blue-600" />;
+    if (isActive && sortConfig.direction === 'DESC') return <ArrowDown size={14} className="text-blue-600" />;
+    return <ArrowUpDown size={14} className="text-slate-400" />;
+  };
+
+  return (
+    <th
+      className="px-6 py-4 font-semibold text-slate-700 text-sm bg-slate-50 cursor-pointer select-none hover:bg-slate-100 transition-colors"
+      onClick={() => onSort(column)}
+    >
+      <div className="flex items-center gap-1.5">
+        <span>{label}</span>
+        <span className="transition-colors">{getIcon()}</span>
+      </div>
+    </th>
   );
 };
 

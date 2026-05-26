@@ -2,7 +2,8 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   Users, Calendar, Clock, Plane, FileBadge, 
-  MessageSquare, RefreshCw, LayoutDashboard, Cpu 
+  MessageSquare, RefreshCw, LayoutDashboard, Cpu,
+  FileSpreadsheet 
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -19,6 +20,7 @@ const Sidebar = () => {
     { name: 'Certificaciones', icon: <FileBadge size={20} />, path: '/certificaciones' },
     { name: 'Comunicados/Memo', icon: <MessageSquare size={20} />, path: '/comunicados' },
     { name: 'Reemplazos', icon: <RefreshCw size={20} />, path: '/reemplazos' },
+    { name: 'Reportes', icon: <FileSpreadsheet size={20} />, path: '/reportes' },
   ];
 
   return (

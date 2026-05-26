@@ -4,6 +4,7 @@ import {
   FileSpreadsheet, Download, CalendarClock, Users, Filter,
   ChevronRight, Settings, Calendar
 } from 'lucide-react';
+import { API_BASE_URL } from '../config/api';
 
 const ReportesPage = () => {
   const [config, setConfig] = useState({ fuentes: [], tipos: [], unidades: [] });
@@ -14,7 +15,7 @@ const ReportesPage = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    axios.get('http://localhost:3001/api/reportes/config')
+    axios.get(`${API_BASE_URL}/api/reportes/config`)
       .then(res => setConfig(res.data))
       .catch(err => console.error(err));
   }, []);
@@ -48,9 +49,9 @@ const ReportesPage = () => {
         if (filters.fuente_id) params.append('fuente_id', filters.fuente_id);
         if (filters.tipo_id) params.append('tipo_id', filters.tipo_id);
         if (filters.unidad_id) params.append('unidad_id', filters.unidad_id);
-        url = `http://localhost:3001/api/reportes/inventario?${params}`;
+        url = `${API_BASE_URL}/api/reportes/inventario?${params}`;
       } else if (selectedReport === 'contratos-vencer') {
-        url = `http://localhost:3001/api/reportes/contratos-vencer?days=${filters.days}`;
+        url = `${API_BASE_URL}/api/reportes/contratos-vencer?days=${filters.days}`;
       }
       window.open(url, '_blank');
     } catch (error) {

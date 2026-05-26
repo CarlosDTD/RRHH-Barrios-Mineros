@@ -23,6 +23,11 @@ CREATE TABLE cat_fuentes_financiamiento (
     nombre_fuente VARCHAR(100) NOT NULL
 );
 
+CREATE TABLE cat_unidades_servicios (
+    id SERIAL PRIMARY KEY,
+    nombre_unidad VARCHAR(150) NOT NULL UNIQUE
+);
+
 -- Tablas Principales
 CREATE TABLE establecimientos (
     id SERIAL PRIMARY KEY,
