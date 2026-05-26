@@ -56,6 +56,9 @@ CREATE TABLE vinculos_laborales (
     identificador_laboral VARCHAR(100),
     unidad_servicio VARCHAR(150),
     cargo_actual VARCHAR(150),
+    cargo_planilla VARCHAR(150),
+    cargo_escala VARCHAR(150),
+    nro_resumen_ejecutivo VARCHAR(100),
     carga_horaria VARCHAR(10),
     fecha_ingreso DATE,
     fecha_institucionalizacion DATE,
@@ -75,3 +78,53 @@ INSERT INTO cat_expediciones (sigla, nombre) VALUES
 ('TJ', 'Tarija'), ('PT', 'Potosí'), ('CH', 'Chuquisaca');
 
 INSERT INTO establecimientos (nombre_establecimiento) VALUES ('HBM - Hospital Barrios Mineros');
+
+CREATE TABLE asistencia_mensual (
+    id SERIAL PRIMARY KEY,
+    personal_id INT REFERENCES personal(id) ON DELETE CASCADE,
+    mes INT NOT NULL,
+    anio INT NOT NULL,
+    total_horas NUMERIC(10,2) DEFAULT 0,
+    total_atrasos_min INT DEFAULT 0,
+    observaciones TEXT,
+    tipo_planilla VARCHAR(20),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(personal_id, mes, anio)
+);
+
+CREATE TABLE asistencia_diaria (
+    id SERIAL PRIMARY KEY,
+    asistencia_id INT REFERENCES asistencia_mensual(id) ON DELETE CASCADE,
+    dia INT NOT NULL,
+    valor VARCHAR(10)
+);
+
+CREATE TABLE biometrico_config (
+    id INTEGER PRIMARY KEY,
+    ip_address VARCHAR(50),
+    port INTEGER,
+    comms_key VARCHAR(50),
+    ultimo_sync_usuarios TIMESTAMP,
+    ultimo_sync_logs TIMESTAMP,
+    estado VARCHAR(20)
+);
+
+CREATE TABLE biometrico_logs_raw (
+    id SERIAL PRIMARY KEY,
+    biometrico_id INTEGER,
+    timestamp TIMESTAMP,
+    verificacion_tipo INTEGER,
+    estado_asistencia INTEGER,
+    device_ip VARCHAR(50),
+    UNIQUE(biometrico_id, timestamp)
+);
+
+CREATE TABLE historial_movimientos (
+    id SERIAL PRIMARY KEY,
+    personal_id INT REFERENCES personal(id) ON DELETE CASCADE,
+    tipo_movimiento VARCHAR(100),
+    detalles_anteriores JSONB,
+    detalles_nuevos JSONB,
+    motivo TEXT,
+    fecha_movimiento TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
