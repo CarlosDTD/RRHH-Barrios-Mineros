@@ -44,7 +44,8 @@ CREATE TABLE personal (
     tercer_nombre VARCHAR(100),
     fecha_nacimiento DATE,
     profesion_id INT REFERENCES cat_profesiones(id),
-    telefono VARCHAR(20)
+    telefono VARCHAR(20),
+    biometrico_id INTEGER
 );
 
 CREATE TABLE vinculos_laborales (
