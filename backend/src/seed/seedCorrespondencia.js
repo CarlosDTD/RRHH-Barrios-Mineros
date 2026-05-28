@@ -11,6 +11,7 @@ async function seed() {
     { nombre: 'DIRECTOR', descripcion: 'Director del hospital' },
     { nombre: 'JEFE_RRHH', descripcion: 'Jefe de Recursos Humanos' },
     { nombre: 'AUXILIAR', descripcion: 'Auxiliar de oficina' },
+    { nombre: 'JEFE_SERVICIO', descripcion: 'Jefe de servicio - gestiona turnos de su servicio' },
   ];
 
   console.log('Creando roles...');
@@ -33,6 +34,8 @@ async function seed() {
     { codigo: 'usuarios.gestionar', descripcion: 'Gestionar usuarios y roles', modulo: 'usuarios' },
     { codigo: 'config.ver', descripcion: 'Ver configuración del sistema', modulo: 'config' },
     { codigo: 'config.editar', descripcion: 'Editar configuración del sistema', modulo: 'config' },
+    { codigo: 'turnos.ver', descripcion: 'Ver planillas de turnos', modulo: 'turnos' },
+    { codigo: 'turnos.gestionar', descripcion: 'Gestionar turnos y planillas', modulo: 'turnos' },
   ];
 
   console.log('Creando permisos...');
@@ -59,6 +62,7 @@ async function seed() {
     DIRECTOR: ['correspondencia.ver', 'correspondencia.derivar', 'correspondencia.responder'],
     JEFE_RRHH: ['correspondencia.ver', 'correspondencia.derivar', 'correspondencia.responder'],
     AUXILIAR: ['correspondencia.ver', 'correspondencia.responder'],
+    JEFE_SERVICIO: ['turnos.ver', 'turnos.gestionar'],
   };
 
   for (const [roleName, permCodes] of Object.entries(rolePermMap)) {

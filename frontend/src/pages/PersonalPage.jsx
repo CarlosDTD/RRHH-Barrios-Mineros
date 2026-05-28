@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
 import { 
   Search, Download, Upload, UserPlus, Edit, Calendar, Phone, IdCard, 
   ChevronLeft, ChevronRight, History, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown 
@@ -7,7 +6,7 @@ import {
 import PersonalForm from '../components/PersonalForm';
 import HistorialModal from '../components/HistorialModal';
 import ImportResultsModal from '../components/ImportResultsModal';
-import { API_BASE_URL } from '../config/api';
+import api, { API_BASE_URL } from '../config/api';
 
 const PersonalPage = () => {
   const [personal, setPersonal] = useState([]);
@@ -53,7 +52,7 @@ const PersonalPage = () => {
         params.sort = sortConfig.column;
         params.order = sortConfig.direction;
       }
-      const response = await axios.get(`${API_BASE_URL}/api/personal`, { params });
+      const response = await api.get('/api/personal', { params });
       setPersonal(response.data.data);
       setPagination(response.data.pagination);
     } catch (error) {
@@ -65,7 +64,7 @@ const PersonalPage = () => {
 
   const fetchCatalogos = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/personal/catalogos`);
+      const response = await api.get(`/api/personal/catalogos`);
       setCatalogos(response.data);
     } catch (error) {
       console.error('Error fetching catalogos:', error);
@@ -96,9 +95,9 @@ const PersonalPage = () => {
   const handleSave = async (data) => {
     try {
       if (selectedPersonal) {
-        await axios.put(`${API_BASE_URL}/api/personal/${selectedPersonal.id}`, data);
+        await api.put(`/api/personal/${selectedPersonal.id}`, data);
       } else {
-        await axios.post(`${API_BASE_URL}/api/personal`, data);
+        await api.post('/api/personal', data);
       }
       setShowForm(false);
       setSelectedPersonal(null);
@@ -125,7 +124,7 @@ const PersonalPage = () => {
 
     try {
       setLoading(true);
-      const response = await axios.post(`${API_BASE_URL}/api/personal/import`, formData);
+      const response = await api.post(`/api/personal/import`, formData);
       setImportResults(response.data);
       setShowImportResults(true);
       fetchPersonal();

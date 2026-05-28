@@ -4,7 +4,7 @@ import {
   Link, UserCheck, AlertCircle, CheckCircle2,
   Clock, Activity
 } from 'lucide-react';
-import { API_BASE_URL } from '../config/api';
+import api from '../config/api';
 
 const BiometricoPage = () => {
   const [config, setConfig] = useState({ ip_address: '', port: 4370, comms_key: '0' });
@@ -19,11 +19,8 @@ const BiometricoPage = () => {
 
   const fetchConfig = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/biometrico/config`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.ip_address) setConfig(data);
-      }
+      const res = await api.get('/api/biometrico/config');
+      if (res.data && res.data.ip_address) setConfig(res.data);
     } catch (e) {
       console.error('Error fetching config:', e);
     }
@@ -31,13 +28,8 @@ const BiometricoPage = () => {
 
   const fetchLogs = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/biometrico/raw-logs`);
-      if (res.ok) {
-        const data = await res.json();
-        setLogs(Array.isArray(data) ? data : []);
-      } else {
-        setLogs([]);
-      }
+      const res = await api.get('/api/biometrico/raw-logs');
+      setLogs(Array.isArray(res.data) ? res.data : []);
     } catch (e) {
       console.error('Error fetching logs:', e);
       setLogs([]);
@@ -47,12 +39,8 @@ const BiometricoPage = () => {
   const handleUpdateConfig = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/biometrico/config`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(config)
-      });
-      if (res.ok) setStatus({ type: 'success', text: 'Configuración guardada' });
+      await api.post('/api/biometrico/config', config);
+      setStatus({ type: 'success', text: 'Configuración guardada' });
     } catch (e) {
       setStatus({ type: 'error', text: 'Error al conectar con el servidor' });
     } finally {
@@ -64,14 +52,9 @@ const BiometricoPage = () => {
     setLoading(true);
     setStatus({ type: 'info', text: 'Conectando con el equipo y extrayendo logs...' });
     try {
-      const res = await fetch(`${API_BASE_URL}/api/biometrico/sync-logs`, { method: 'POST' });
-      const data = await res.json();
-      if (res.ok) {
-        setStatus({ type: 'success', text: `Sincronización completa. Registros: ${data.nuevosGuardados}` });
-        fetchLogs();
-      } else {
-        throw new Error(data.error);
-      }
+      const res = await api.post('/api/biometrico/sync-logs');
+      setStatus({ type: 'success', text: `Sincronización completa. Registros: ${res.data.nuevosGuardados}` });
+      fetchLogs();
     } catch (e) {
       setStatus({ type: 'error', text: e.message });
     } finally {

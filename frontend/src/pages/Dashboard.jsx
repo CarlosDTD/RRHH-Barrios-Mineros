@@ -8,7 +8,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   PieChart, Pie, Cell, Legend 
 } from 'recharts';
-import { API_BASE_URL } from '../config/api';
+import api from '../config/api';
 
 const Dashboard = () => {
   const [stats, setStats] = useState(null);
@@ -17,26 +17,21 @@ const Dashboard = () => {
   const [alertas, setAlertas] = useState(null);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/dashboard/stats`)
+    api.get('/api/dashboard/stats')
       .then(res => {
-        if (!res.ok) throw new Error(`Error ${res.status}: ${res.statusText}`);
-        return res.json();
-      })
-      .then(data => {
-        setStats(data);
+        setStats(res.data);
         setLoading(false);
       })
       .catch(err => {
         console.error(err);
-        setError(err.message);
+        setError(err.response?.data?.error || err.message);
         setLoading(false);
       });
   }, []);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/personal/contratos-alertas`)
-      .then(res => res.json())
-      .then(data => setAlertas(data))
+    api.get('/api/personal/contratos-alertas')
+      .then(res => setAlertas(res.data))
       .catch(err => console.error('Error fetching alertas:', err));
   }, []);
 

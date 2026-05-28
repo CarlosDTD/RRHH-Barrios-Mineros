@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Upload, FileSpreadsheet, Calendar, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import ImportResultsModal from './ImportResultsModal';
-import { API_BASE_URL } from '../config/api';
+import api from '../config/api';
 
 const AsistenciaImport = () => {
   const [file, setFile] = useState(null);
@@ -34,16 +34,8 @@ const AsistenciaImport = () => {
     formData.append('anio', anio);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/asistencia/import`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Error al importar asistencia');
-      }
+      const response = await api.post('/api/asistencia/import', formData);
+      const data = response.data;
 
       setResults(data);
       setFile(null);

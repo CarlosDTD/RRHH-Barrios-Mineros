@@ -1,6 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
-import { API_BASE_URL } from '../config/api';
+import api from '../config/api';
 
 const AuthContext = createContext(null);
 
@@ -11,9 +10,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      axios.get(`${API_BASE_URL}/api/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      api.get('/api/auth/me')
         .then(res => setUsuario(res.data))
         .catch(() => {
           localStorage.removeItem('token');
@@ -26,7 +23,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = async (username, password) => {
-    const res = await axios.post(`${API_BASE_URL}/api/auth/login`, { username, password });
+    const res = await api.post('/api/auth/login', { username, password });
     localStorage.setItem('token', res.data.token);
     setUsuario(res.data.usuario);
     return res.data.usuario;
@@ -39,9 +36,8 @@ export function AuthProvider({ children }) {
 
   const cambiarPassword = async (password_actual, password_nuevo) => {
     const token = localStorage.getItem('token');
-    const res = await axios.put(`${API_BASE_URL}/api/auth/cambiar-password`,
-      { password_actual, password_nuevo },
-      { headers: { Authorization: `Bearer ${token}` } }
+    const res = await api.put('/api/auth/cambiar-password',
+      { password_actual, password_nuevo }
     );
     setUsuario(prev => ({ ...prev, password_cambiado: true }));
     return res.data;
@@ -49,24 +45,7 @@ export function AuthProvider({ children }) {
 
   const token = () => localStorage.getItem('token');
 
-  const authAxios = () => {
-    const instance = axios.create({ baseURL: API_BASE_URL });
-    instance.interceptors.request.use(config => {
-      config.headers.Authorization = `Bearer ${localStorage.getItem('token')}`;
-      return config;
-    });
-    instance.interceptors.response.use(
-      res => res,
-      err => {
-        if (err.response?.status === 401) {
-          logout();
-          window.location.href = '/login';
-        }
-        return Promise.reject(err);
-      }
-    );
-    return instance;
-  };
+  const authAxios = () => api;
 
   return (
     <AuthContext.Provider value={{ usuario, loading, login, logout, cambiarPassword, token: token(), authAxios }}>

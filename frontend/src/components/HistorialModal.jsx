@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { X, History, ArrowRight, Calendar, Tag, Briefcase, MapPin } from 'lucide-react';
-import { API_BASE_URL } from '../config/api';
+import api from '../config/api';
 
 const HistorialModal = ({ personal, onClose }) => {
   const [historial, setHistorial] = useState([]);
@@ -10,7 +9,7 @@ const HistorialModal = ({ personal, onClose }) => {
   useEffect(() => {
     const fetchHistorial = async () => {
       try {
-        const response = await axios.get(`${API_BASE_URL}/api/personal/${personal.id}/historial`);
+        const response = await api.get(`/api/personal/${personal.id}/historial`);
         setHistorial(response.data);
       } catch (error) {
         console.error('Error fetching historial:', error);

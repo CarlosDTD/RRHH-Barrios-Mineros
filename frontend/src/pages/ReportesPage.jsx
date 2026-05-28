@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { 
   FileSpreadsheet, Download, CalendarClock, Users, Filter,
   ChevronRight, Settings, Calendar
 } from 'lucide-react';
-import { API_BASE_URL } from '../config/api';
+import api, { API_BASE_URL } from '../config/api';
 
 const ReportesPage = () => {
   const [config, setConfig] = useState({ fuentes: [], tipos: [], unidades: [] });
@@ -15,7 +14,7 @@ const ReportesPage = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    axios.get(`${API_BASE_URL}/api/reportes/config`)
+    api.get('/api/reportes/config')
       .then(res => setConfig(res.data))
       .catch(err => console.error(err));
   }, []);

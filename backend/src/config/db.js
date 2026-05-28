@@ -8,7 +8,9 @@ const poolConfig = {
   port: process.env.DB_PORT,
 };
 if (process.env.DB_PASSWORD) poolConfig.password = process.env.DB_PASSWORD;
-if (process.env.DB_SSL || (process.env.DB_HOST && process.env.DB_HOST !== '/var/run/postgresql')) {
+if (process.env.DB_SSL && process.env.DB_SSL !== 'false') {
+  poolConfig.ssl = { rejectUnauthorized: false };
+} else if (process.env.DB_HOST && process.env.DB_HOST !== '/var/run/postgresql' && process.env.DB_HOST !== 'localhost') {
   poolConfig.ssl = { rejectUnauthorized: false };
 }
 

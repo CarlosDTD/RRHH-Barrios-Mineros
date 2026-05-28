@@ -15,6 +15,7 @@ import CorrespondenciaDetail from './pages/CorrespondenciaDetail';
 import BandejaPage from './pages/BandejaPage';
 import ConfiguracionPage from './pages/ConfiguracionPage';
 import AdminUsuariosPage from './pages/AdminUsuariosPage';
+import TurnosPage from './pages/TurnosPage';
 
 const Placeholder = ({ title }) => (
   <div className="p-8 bg-slate-50 min-h-screen">
@@ -102,7 +103,7 @@ function AppContent() {
           <Route path="/personal" element={<PersonalPage />} />
           <Route path="/asistencias" element={<AsistenciasPage />} />
           <Route path="/biometrico" element={<BiometricoPage />} />
-          <Route path="/turnos" element={<Placeholder title="Turnos" />} />
+          <Route path="/turnos" element={<ProtectedRoute roles={['ADMIN', 'JEFE_RRHH', 'JEFE_SERVICIO']}><TurnosPage /></ProtectedRoute>} />
           <Route path="/vacaciones" element={<Placeholder title="Vacaciones" />} />
           <Route path="/permisos" element={<Placeholder title="Permisos" />} />
           <Route path="/certificaciones" element={<Placeholder title="Certificaciones" />} />
