@@ -22,3 +22,6 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# Source data files (Excel/PDF with personnel data)
+Sources/
