@@ -6,7 +6,11 @@ class BiometricoService {
    * Intenta conectar con el equipo biométrico
    */
   static async connectToDevice(ip, port, commsKey) {
-    const device = new ZKLib(ip, port, 10000, 4000);
+    const options = { timeout: 10000, pollingInterval: 4000 };
+    if (commsKey && commsKey !== '0') {
+      options.commKey = parseInt(commsKey);
+    }
+    const device = new ZKLib(ip, port, options);
     try {
       await device.createSocket();
       return device;

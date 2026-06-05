@@ -1,5 +1,6 @@
 const cron = require('node-cron');
 const db = require('../config/db');
+const BiometricoService = require('../services/biometricoService');
 
 function startEstadoJob() {
   cron.schedule('0 1 * * *', async () => {
@@ -28,7 +29,23 @@ function startEstadoJob() {
     }
   });
 
-  console.log('[CRON] Job de verificacion de estados programado (diario a las 01:00)');
+  cron.schedule('*/30 * * * *', async () => {
+    console.log('[CRON] Sincronizando logs biométricos...');
+    try {
+      const { rows } = await db.query('SELECT * FROM biometrico_config LIMIT 1');
+      if (rows.length === 0 || !rows[0].ip_address) {
+        console.log('[CRON] Sin configuración biométrica: saltando sync');
+        return;
+      }
+
+      const result = await BiometricoService.syncLogs();
+      console.log(`[CRON] Sync biométrico: ${result.nuevosGuardados} nuevos registros de ${result.totalRecibidos}`);
+    } catch (error) {
+      console.error('[CRON] Error en sync biométrico:', error.message);
+    }
+  });
+
+  console.log('[CRON] Jobs programados: verificación contratos (01:00), sync biométrico (c/30 min)');
 }
 
 module.exports = { startEstadoJob };
