@@ -29,6 +29,8 @@ router.get('/no-vinculados', BiometricoController.getNoVinculados);
 router.get('/vinculados', BiometricoController.getVinculados);
 router.post('/vincular', BiometricoController.vincular);
 router.post('/desvincular', BiometricoController.desvincular);
+router.post('/vincular-por-ci', BiometricoController.vincularPorCI);
+router.post('/vincular-multiples', BiometricoController.vincularMultiples);
 router.get('/personal-sin-biometrico', BiometricoController.getPersonalSinBiometrico);
 router.get('/resumen-mapeo', BiometricoController.getResumenMapeo);
 
@@ -36,5 +38,13 @@ router.get('/resumen-mapeo', BiometricoController.getResumenMapeo);
 router.get('/asistencia-mensual', BiometricoController.getAsistenciaMensual);
 router.get('/asistencia-personas', BiometricoController.getPersonasConAsistencia);
 router.get('/marcaciones/:personalId', BiometricoController.getMarcacionesPorDia);
+
+// Turnos biométricos
+router.get('/turnos', BiometricoController.getTurnos);
+router.post('/turnos/asignar', BiometricoController.asignarTurno);
+router.post('/turnos/eliminar', BiometricoController.eliminarTurno);
+router.get('/turnos/verificar/:personalId', BiometricoController.verificarAsistenciaTurno);
+router.get('/turnos/personal-sin-turno', BiometricoController.getPersonalSinTurno);
+router.get('/turnos/personal-con-turno', BiometricoController.getPersonalConTurno);
 
 module.exports = router;

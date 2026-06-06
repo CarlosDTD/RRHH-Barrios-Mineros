@@ -13,6 +13,7 @@ const TABS = [
   { id: 'import', label: 'Importar Datos', icon: Database },
   { id: 'mapping', label: 'Mapeo de Empleados', icon: Link },
   { id: 'attendance', label: 'Asistencia', icon: Clock },
+  { id: 'turnos', label: 'Turnos', icon: Calendar },
 ];
 
 const BiometricoPage = () => {
@@ -76,6 +77,7 @@ const BiometricoPage = () => {
       {activeTab === 'import' && <ImportTab showStatus={showStatus} />}
       {activeTab === 'mapping' && <MappingTab showStatus={showStatus} />}
       {activeTab === 'attendance' && <AttendanceTab showStatus={showStatus} />}
+      {activeTab === 'turnos' && <TurnosTab showStatus={showStatus} />}
     </div>
   );
 };
@@ -247,7 +249,7 @@ const ImportTab = ({ showStatus }) => {
   const handleImportEmpleados = async () => {
     setImportingEmp(true);
     try {
-      const res = await api.post('/api/biometrico/importar-empleados');
+      const res = await api.post('/api/biometrico/importar-empleados', {});
       showStatus('success', `Empleados importados: ${res.data.insertados} nuevos, ${res.data.actualizados} actualizados (${res.data.total} total)`);
       fetchStats();
     } catch (e) {
@@ -366,6 +368,8 @@ const MappingTab = ({ showStatus }) => {
   const [loading, setLoading] = useState(true);
   const [subTab, setSubTab] = useState('sugerencias');
   const [selectedPersonal, setSelectedPersonal] = useState({});
+  const [selectedSugerencias, setSelectedSugerencias] = useState(new Set());
+  const [vincPorCiLoading, setVincPorCiLoading] = useState(false);
   const [resumen, setResumen] = useState(null);
 
   const fetchData = async () => {
@@ -410,6 +414,54 @@ const MappingTab = ({ showStatus }) => {
     }
   };
 
+  const handleVincularTodosPorCI = async () => {
+    if (!window.confirm('¿Vincular todos los empleados que coincidan por CI?')) return;
+    setVincPorCiLoading(true);
+    try {
+      const res = await api.post('/api/biometrico/vincular-por-ci');
+      showStatus('success', `Vinculación masiva completada: ${res.data.total} empleados vinculados por CI`);
+      fetchData();
+    } catch (e) {
+      showStatus('error', e.response?.data?.error || e.message);
+    } finally { setVincPorCiLoading(false); }
+  };
+
+  const handleVincularSeleccionados = async () => {
+    const lista = sugerencias
+      .filter(s => selectedSugerencias.has(s.usuario_id) && s.personal_id && !s.biometrico_actual)
+      .map(s => ({ usuario_id: s.usuario_id, personal_id: s.personal_id }));
+    if (lista.length === 0) {
+      showStatus('error', 'No hay sugerencias seleccionables para vincular');
+      return;
+    }
+    try {
+      const res = await api.post('/api/biometrico/vincular-multiples', { lista });
+      showStatus('success', `${res.data.exitosos} vinculaciones exitosas${res.data.errores?.length ? `, ${res.data.errores.length} errores` : ''}`);
+      setSelectedSugerencias(new Set());
+      fetchData();
+    } catch (e) {
+      showStatus('error', e.response?.data?.error || e.message);
+    }
+  };
+
+  const toggleSugerencia = (usuarioId) => {
+    setSelectedSugerencias(prev => {
+      const next = new Set(prev);
+      if (next.has(usuarioId)) next.delete(usuarioId);
+      else next.add(usuarioId);
+      return next;
+    });
+  };
+
+  const toggleAllSugerencias = () => {
+    const disponibles = sugerencias.filter(s => s.personal_id && !s.biometrico_actual);
+    if (selectedSugerencias.size === disponibles.length) {
+      setSelectedSugerencias(new Set());
+    } else {
+      setSelectedSugerencias(new Set(disponibles.map(s => s.usuario_id)));
+    }
+  };
+
   if (loading) return <div className="text-center py-20 text-slate-400">Cargando datos de mapeo...</div>;
 
   const subTabs = [
@@ -438,7 +490,7 @@ const MappingTab = ({ showStatus }) => {
       </div>
 
       {/* Sub-tabs */}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2 items-center">
         {subTabs.map(st => (
           <button key={st.id} onClick={() => setSubTab(st.id)}
             className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
@@ -447,6 +499,18 @@ const MappingTab = ({ showStatus }) => {
             {st.label}
           </button>
         ))}
+        <div className="ml-auto flex gap-2">
+          <button onClick={handleVincularTodosPorCI} disabled={vincPorCiLoading}
+            className="px-4 py-2 rounded-xl text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-all disabled:bg-slate-300">
+            {vincPorCiLoading ? 'Vinculando...' : 'Vincular Todos por CI'}
+          </button>
+          {subTab === 'sugerencias' && selectedSugerencias.size > 0 && (
+            <button onClick={handleVincularSeleccionados}
+              className="px-4 py-2 rounded-xl text-sm font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition-all">
+              Vincular Seleccionados ({selectedSugerencias.size})
+            </button>
+          )}
+        </div>
       </div>
 
       {subTab === 'sugerencias' && (
@@ -462,6 +526,11 @@ const MappingTab = ({ showStatus }) => {
               <table className="w-full text-left">
                 <thead>
                   <tr className="bg-slate-50/50 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                    <th className="px-4 py-4 w-10">
+                      <input type="checkbox" checked={sugerencias.filter(s => s.personal_id && !s.biometrico_actual).length > 0 && selectedSugerencias.size === sugerencias.filter(s => s.personal_id && !s.biometrico_actual).length}
+                        onChange={toggleAllSugerencias}
+                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                    </th>
                     <th className="px-6 py-4">Empleado ZK</th>
                     <th className="px-6 py-4">Departamento</th>
                     <th className="px-6 py-4">→</th>
@@ -473,7 +542,14 @@ const MappingTab = ({ showStatus }) => {
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {sugerencias.map((s) => (
-                    <tr key={s.usuario_id} className="hover:bg-slate-50/50 transition-colors">
+                    <tr key={s.usuario_id} className={`hover:bg-slate-50/50 transition-colors ${selectedSugerencias.has(s.usuario_id) ? 'bg-blue-50/50' : ''}`}>
+                      <td className="px-4 py-4">
+                        {s.personal_id && !s.biometrico_actual && (
+                          <input type="checkbox" checked={selectedSugerencias.has(s.usuario_id)}
+                            onChange={() => toggleSugerencia(s.usuario_id)}
+                            className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                        )}
+                      </td>
                       <td className="px-6 py-4 font-bold text-slate-700">
                         {s.nombre_biometrico} {s.apellidos_biometrico}
                         <div className="text-xs text-slate-400 font-mono">PIN: {s.emp_pin}</div>
@@ -813,14 +889,14 @@ const AttendanceTab = ({ showStatus }) => {
                         </td>
                         <td className="px-6 py-4">
                           <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${
-                            m.estado_asistencia === 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
+                            m.estado_asistencia === 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'
                           }`}>
                             {m.estado_asistencia === 0 ? 'Entrada' : 'Salida'}
                           </span>
                         </td>
                         <td className="px-6 py-4">
                           <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                            m.origen === 'HISTORICO' ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-blue-600'
+                            m.origen === 'HISTORICO' ? 'bg-purple-50 text-purple-600' : 'bg-sky-50 text-sky-600'
                           }`}>
                             {m.origen}
                           </span>
@@ -832,6 +908,283 @@ const AttendanceTab = ({ showStatus }) => {
               </div>
             )}
           </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ==================== TURNOS TAB ==================== */
+const TurnosTab = ({ showStatus }) => {
+  const [turnos, setTurnos] = useState([]);
+  const [personalSinTurno, setPersonalSinTurno] = useState([]);
+  const [selectedPersonalId, setSelectedPersonalId] = useState(null);
+  const [form, setForm] = useState({ personal_id: '', nombre: 'Turno', hora_entrada: '08:00', hora_salida: '14:00', tolerancia_minutos: 15 });
+  const [verificacion, setVerificacion] = useState(null);
+  const [loadingVerif, setLoadingVerif] = useState(false);
+  const [mes, setMes] = useState(new Date().getMonth() + 1);
+  const [anio, setAnio] = useState(new Date().getFullYear());
+  const [loading, setLoading] = useState(true);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [t, pst] = await Promise.all([
+        api.get('/api/biometrico/turnos'),
+        api.get('/api/biometrico/turnos/personal-sin-turno'),
+      ]);
+      setTurnos(t.data);
+      setPersonalSinTurno(pst.data);
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { fetchData(); }, []);
+
+  const handleAsignar = async () => {
+    if (!form.personal_id) { showStatus('error', 'Selecciona un empleado'); return; }
+    try {
+      await api.post('/api/biometrico/turnos/asignar', form);
+      showStatus('success', 'Turno asignado correctamente');
+      setForm({ personal_id: '', nombre: 'Turno', hora_entrada: '08:00', hora_salida: '14:00', tolerancia_minutos: 15 });
+      fetchData();
+      setVerificacion(null);
+    } catch (e) {
+      showStatus('error', e.response?.data?.error || e.message);
+    }
+  };
+
+  const handleEliminar = async (personalId) => {
+    if (!window.confirm('¿Eliminar turno de este empleado?')) return;
+    try {
+      await api.post('/api/biometrico/turnos/eliminar', { personal_id: personalId });
+      showStatus('success', 'Turno eliminado');
+      fetchData();
+      setVerificacion(null);
+      if (selectedPersonalId === personalId) setSelectedPersonalId(null);
+    } catch (e) {
+      showStatus('error', e.response?.data?.error || e.message);
+    }
+  };
+
+  const handleVerificar = async (personalId) => {
+    setSelectedPersonalId(personalId);
+    setLoadingVerif(true);
+    try {
+      const res = await api.get(`/api/biometrico/turnos/verificar/${personalId}?mes=${mes}&anio=${anio}`);
+      setVerificacion(res.data);
+    } catch (e) {
+      showStatus('error', e.response?.data?.error || e.message);
+      setVerificacion(null);
+    } finally { setLoadingVerif(false); }
+  };
+
+  const handleEditTurno = (turno) => {
+    setForm({
+      personal_id: turno.personal_id,
+      nombre: turno.nombre,
+      hora_entrada: turno.hora_entrada.slice(0, 5),
+      hora_salida: turno.hora_salida.slice(0, 5),
+      tolerancia_minutos: turno.tolerancia_minutos || 15,
+    });
+  };
+
+  const meses = [
+    { id: 1, nombre: 'Enero' }, { id: 2, nombre: 'Febrero' }, { id: 3, nombre: 'Marzo' },
+    { id: 4, nombre: 'Abril' }, { id: 5, nombre: 'Mayo' }, { id: 6, nombre: 'Junio' },
+    { id: 7, nombre: 'Julio' }, { id: 8, nombre: 'Agosto' }, { id: 9, nombre: 'Septiembre' },
+    { id: 10, nombre: 'Octubre' }, { id: 11, nombre: 'Noviembre' }, { id: 12, nombre: 'Diciembre' }
+  ];
+
+  const estadoColor = {
+    CUMPLE: 'bg-emerald-50 text-emerald-600',
+    NO_CUMPLE: 'bg-rose-50 text-rose-600',
+    ENTRADA_TARDIA: 'bg-amber-50 text-amber-600',
+    SALIDA_TEMPRANO: 'bg-amber-50 text-amber-600',
+    SIN_MARCACION: 'bg-slate-100 text-slate-400',
+  };
+
+  if (loading) return <div className="text-center py-20 text-slate-400">Cargando turnos...</div>;
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Lista de empleados con/sin turno */}
+        <div className="lg:col-span-1 space-y-6">
+          {/* Con turno */}
+          <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+            <div className="p-4 border-b border-slate-100">
+              <h3 className="font-bold text-slate-800">Con Turno</h3>
+              <p className="text-xs text-slate-400 mt-1">{turnos.length} empleados</p>
+            </div>
+            <div className="divide-y divide-slate-50 max-h-[300px] overflow-y-auto">
+              {turnos.length === 0 ? (
+                <div className="p-6 text-center text-slate-400 text-sm">Sin turnos asignados</div>
+              ) : turnos.map(t => (
+                <div key={t.id}
+                  className={`px-4 py-3 flex items-center justify-between hover:bg-slate-50 cursor-pointer transition-colors ${selectedPersonalId === t.personal_id ? 'bg-blue-50 border-l-4 border-blue-600' : ''}`}
+                  onClick={() => handleVerificar(t.personal_id)}>
+                  <div>
+                    <p className="font-bold text-sm text-slate-700">{t.primer_nombre} {t.apellido_paterno}</p>
+                    <p className="text-xs text-slate-400 font-mono">{t.hora_entrada.slice(0,5)} - {t.hora_salida.slice(0,5)} | {t.nombre}</p>
+                  </div>
+                  <button onClick={(e) => { e.stopPropagation(); handleEditTurno(t); }}
+                    className="text-xs font-bold px-2 py-1 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200">
+                    Editar
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Sin turno */}
+          <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+            <div className="p-4 border-b border-slate-100">
+              <h3 className="font-bold text-slate-800">Sin Turno</h3>
+              <p className="text-xs text-slate-400 mt-1">{personalSinTurno.length} empleados</p>
+            </div>
+            <div className="divide-y divide-slate-50 max-h-[200px] overflow-y-auto">
+              {personalSinTurno.length === 0 ? (
+                <div className="p-6 text-center text-slate-400 text-sm">Todos tienen turno</div>
+              ) : personalSinTurno.map(p => (
+                <div key={p.id}
+                  className="px-4 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                  <p className="font-bold text-sm text-slate-700">{p.primer_nombre} {p.apellido_paterno}</p>
+                  <button onClick={() => setForm(prev => ({ ...prev, personal_id: p.id }))}
+                    className="text-xs font-bold px-3 py-1.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700">
+                    Asignar
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Formulario y verificación */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Formulario de asignación */}
+          <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+            <h3 className="font-bold text-slate-800 mb-4">
+              {form.personal_id ? 'Editar / Asignar Turno' : 'Asignar Nuevo Turno'}
+            </h3>
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+              <div>
+                <label className="text-xs font-bold text-slate-400 uppercase block mb-1">Empleado</label>
+                <select value={form.personal_id} onChange={e => setForm({...form, personal_id: e.target.value})}
+                  className="w-full px-3 py-2.5 bg-slate-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-500">
+                  <option value="">Seleccionar...</option>
+                  {personalSinTurno.map(p => (
+                    <option key={p.id} value={p.id}>{p.primer_nombre} {p.apellido_paterno}</option>
+                  ))}
+                  {turnos.map(t => (
+                    <option key={t.personal_id} value={t.personal_id}>{t.primer_nombre} {t.apellido_paterno}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-400 uppercase block mb-1">Nombre</label>
+                <input type="text" value={form.nombre} onChange={e => setForm({...form, nombre: e.target.value})}
+                  className="w-full px-3 py-2.5 bg-slate-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-400 uppercase block mb-1">Entrada</label>
+                <input type="time" value={form.hora_entrada} onChange={e => setForm({...form, hora_entrada: e.target.value})}
+                  className="w-full px-3 py-2.5 bg-slate-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-400 uppercase block mb-1">Salida</label>
+                <input type="time" value={form.hora_salida} onChange={e => setForm({...form, hora_salida: e.target.value})}
+                  className="w-full px-3 py-2.5 bg-slate-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <button onClick={handleAsignar}
+                disabled={!form.personal_id}
+                className="w-full py-2.5 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all disabled:bg-slate-300">
+                {form.personal_id && turnos.find(t => t.personal_id === parseInt(form.personal_id)) ? 'Actualizar' : 'Asignar'}
+              </button>
+            </div>
+          </div>
+
+          {/* Filtro mes/año para verificación */}
+          <div className="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 flex flex-wrap gap-4 items-end">
+            <div className="w-44 space-y-2">
+              <label className="text-xs font-bold text-slate-400 uppercase">Mes</label>
+              <select value={mes} onChange={e => { setMes(parseInt(e.target.value)); setVerificacion(null); }}
+                className="w-full px-4 py-2.5 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 text-sm">
+                {meses.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+              </select>
+            </div>
+            <div className="w-32 space-y-2">
+              <label className="text-xs font-bold text-slate-400 uppercase">Año</label>
+              <input type="number" value={anio} onChange={e => { setAnio(parseInt(e.target.value)); setVerificacion(null); }}
+                className="w-full px-4 py-2.5 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 text-sm" />
+            </div>
+            {selectedPersonalId && (
+              <button onClick={() => handleVerificar(selectedPersonalId)}
+                className="px-4 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700">
+                Verificar
+              </button>
+            )}
+          </div>
+
+          {/* Resultado de verificación */}
+          {loadingVerif && <div className="text-center py-8 text-slate-400">Verificando asistencia...</div>}
+
+          {verificacion && !loadingVerif && (
+            <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+              <div className="p-6 border-b border-slate-100">
+                <h3 className="font-bold text-slate-800">
+                  Verificación - {verificacion.turno.nombre}
+                </h3>
+                <p className="text-sm text-slate-500 mt-1">
+                  Turno: {verificacion.turno.hora_entrada.slice(0,5)} a {verificacion.turno.hora_salida.slice(0,5)}
+                  {' '}| Tolerancia: {verificacion.turno.tolerancia_minutos} min
+                </p>
+                <div className="flex gap-3 mt-2">
+                  <span className="text-xs px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full font-bold">
+                    Cumple: {verificacion.resumen.cumple}
+                  </span>
+                  <span className="text-xs px-3 py-1 bg-amber-50 text-amber-600 rounded-full font-bold">
+                    Observado: {verificacion.resumen.no_cumple}
+                  </span>
+                  <span className="text-xs px-3 py-1 bg-slate-100 text-slate-400 rounded-full font-bold">
+                    Sin marcación: {verificacion.resumen.sin_marcacion}
+                  </span>
+                </div>
+              </div>
+              <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
+                <table className="w-full text-left">
+                  <thead className="sticky top-0 bg-white">
+                    <tr className="bg-slate-50/50 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                      <th className="px-6 py-4">Día</th>
+                      <th className="px-6 py-4">Fecha</th>
+                      <th className="px-6 py-4">Entrada</th>
+                      <th className="px-6 py-4">Salida</th>
+                      <th className="px-6 py-4">Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {verificacion.verificacion.map((v, i) => (
+                      <tr key={i} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="px-6 py-3 font-bold text-slate-500">{v.dia}</td>
+                        <td className="px-6 py-3 text-slate-600">{new Date(v.fecha).toLocaleDateString()}</td>
+                        <td className="px-6 py-3 font-mono text-sm text-slate-600">{v.entrada || '—'}</td>
+                        <td className="px-6 py-3 font-mono text-sm text-slate-600">{v.salida || '—'}</td>
+                        <td className="px-6 py-3">
+                          <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase ${estadoColor[v.estado] || 'bg-slate-100 text-slate-400'}`}>
+                            {v.estado === 'CUMPLE' ? 'OK' :
+                             v.estado === 'ENTRADA_TARDIA' ? 'Tardanza' :
+                             v.estado === 'SALIDA_TEMPRANO' ? 'Sal. Temp.' :
+                             v.estado === 'NO_CUMPLE' ? 'No Cumple' :
+                             v.estado === 'SIN_MARCACION' ? 'Sin marca' : v.estado}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

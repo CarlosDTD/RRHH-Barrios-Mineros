@@ -96,6 +96,42 @@ class BiometricoMappingService {
     return result.rows;
   }
 
+  static async vincularPorCI() {
+    const result = await db.query(`
+      UPDATE personal p
+      SET biometrico_id = u.emp_pin
+      FROM biometrico_usuarios u
+      WHERE p.biometrico_id IS NULL
+        AND u.emp_ssn = p.ci
+        AND NOT EXISTS (
+          SELECT 1 FROM personal p2 WHERE p2.biometrico_id = u.emp_pin
+        )
+      RETURNING p.id, p.ci, p.primer_nombre, p.apellido_paterno, u.emp_pin, u.primer_nombre as nombre_bio
+    `);
+    return {
+      vinculados: result.rows,
+      total: result.rowCount
+    };
+  }
+
+  static async vincularMultiples(lista) {
+    let exitosos = 0;
+    let errores = [];
+    for (const item of lista) {
+      try {
+        const usuario = await db.query('SELECT emp_pin FROM biometrico_usuarios WHERE id = $1', [item.usuario_id]);
+        if (usuario.rows.length === 0) throw new Error(`Usuario biométrico ${item.usuario_id} no encontrado`);
+        const personal = await db.query('SELECT id FROM personal WHERE id = $1', [item.personal_id]);
+        if (personal.rows.length === 0) throw new Error(`Personal ${item.personal_id} no encontrado`);
+        await db.query('UPDATE personal SET biometrico_id = $1 WHERE id = $2', [usuario.rows[0].emp_pin, item.personal_id]);
+        exitosos++;
+      } catch (e) {
+        errores.push({ usuario_id: item.usuario_id, personal_id: item.personal_id, error: e.message });
+      }
+    }
+    return { exitosos, errores, total: lista.length };
+  }
+
   static async getResumen() {
     const result = await db.query(`
       SELECT

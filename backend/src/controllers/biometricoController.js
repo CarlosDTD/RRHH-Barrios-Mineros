@@ -2,6 +2,7 @@ const BiometricoService = require('../services/biometricoService');
 const BiometricoImportService = require('../services/biometricoImportService');
 const BiometricoMappingService = require('../services/biometricoMappingService');
 const BiometricoAsistenciaService = require('../services/biometricoAsistenciaService');
+const BiometricoTurnoService = require('../services/biometricoTurnoService');
 const db = require('../config/db');
 
 class BiometricoController {
@@ -71,7 +72,7 @@ class BiometricoController {
 
   static async importarEmpleados(req, res) {
     try {
-      const ruta = req.body.ruta || req.query.ruta || process.env.ZKTIMENET_DB_PATH;
+      const ruta = req.body?.ruta || req.query?.ruta || process.env.ZKTIMENET_DB_PATH;
       if (!ruta) return res.status(400).json({ error: 'Ruta de ZKTimeNet.db no especificada' });
 
       const result = await BiometricoImportService.importarEmpleados(ruta);
@@ -83,7 +84,7 @@ class BiometricoController {
 
   static async importarMarcaciones(req, res) {
     try {
-      const ruta = req.body.ruta || req.query.ruta || process.env.ZKTIMENET_DB_PATH;
+      const ruta = req.body?.ruta || req.query?.ruta || process.env.ZKTIMENET_DB_PATH;
       if (!ruta) return res.status(400).json({ error: 'Ruta de ZKTimeNet.db no especificada' });
 
       const { desde, hasta } = req.body;
@@ -156,6 +157,28 @@ class BiometricoController {
     }
   }
 
+  static async vincularPorCI(req, res) {
+    try {
+      const result = await BiometricoMappingService.vincularPorCI();
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async vincularMultiples(req, res) {
+    try {
+      const { lista } = req.body;
+      if (!Array.isArray(lista) || lista.length === 0) {
+        return res.status(400).json({ error: 'Lista de vinculaciones requerida' });
+      }
+      const result = await BiometricoMappingService.vincularMultiples(lista);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
   static async getPersonalSinBiometrico(req, res) {
     try {
       const data = await BiometricoMappingService.getPersonalSinBiometrico();
@@ -217,6 +240,71 @@ class BiometricoController {
     try {
       const { rows } = await db.query('SELECT DISTINCT dept_name, emp_dept_id FROM biometrico_usuarios WHERE dept_name IS NOT NULL ORDER BY dept_name');
       res.json(rows);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  // ============= TURNOS =============
+
+  static async getTurnos(req, res) {
+    try {
+      const turnos = await BiometricoTurnoService.getTurnos();
+      res.json(turnos);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async asignarTurno(req, res) {
+    try {
+      const { personal_id, nombre, hora_entrada, hora_salida, tolerancia_minutos } = req.body;
+      if (!personal_id || !hora_entrada || !hora_salida) {
+        return res.status(400).json({ error: 'personal_id, hora_entrada y hora_salida requeridos' });
+      }
+      const result = await BiometricoTurnoService.asignarTurno(personal_id, nombre, hora_entrada, hora_salida, tolerancia_minutos);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async eliminarTurno(req, res) {
+    try {
+      const { personal_id } = req.body;
+      if (!personal_id) return res.status(400).json({ error: 'personal_id requerido' });
+      const result = await BiometricoTurnoService.eliminarTurno(personal_id);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async verificarAsistenciaTurno(req, res) {
+    try {
+      const personalId = parseInt(req.params.personalId);
+      const mes = parseInt(req.query.mes) || new Date().getMonth() + 1;
+      const anio = parseInt(req.query.anio) || new Date().getFullYear();
+      const result = await BiometricoTurnoService.verificarAsistencia(personalId, mes, anio);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async getPersonalSinTurno(req, res) {
+    try {
+      const data = await BiometricoTurnoService.getPersonalSinTurno();
+      res.json(data);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async getPersonalConTurno(req, res) {
+    try {
+      const data = await BiometricoTurnoService.getPersonalConTurno();
+      res.json(data);
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
