@@ -38,6 +38,9 @@ router.get('/resumen-mapeo', BiometricoController.getResumenMapeo);
 router.get('/asistencia-mensual', BiometricoController.getAsistenciaMensual);
 router.get('/asistencia-personas', BiometricoController.getPersonasConAsistencia);
 router.get('/marcaciones/:personalId', BiometricoController.getMarcacionesPorDia);
+router.get('/personas-por-rango', BiometricoController.getPersonasPorRango);
+router.get('/marcaciones-por-rango/:personalId', BiometricoController.getMarcacionesPorRango);
+router.get('/datos-impresion/:personalId', BiometricoController.getDatosImpresion);
 
 // Turnos biométricos
 router.get('/turnos', BiometricoController.getTurnos);

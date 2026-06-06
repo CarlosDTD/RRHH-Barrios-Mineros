@@ -759,59 +759,81 @@ const PersonalSelector = ({ noVinculados, personalSinBio, onVincular }) => {
 
 /* ==================== ATTENDANCE TAB ==================== */
 const AttendanceTab = ({ showStatus }) => {
-  const [mes, setMes] = useState(new Date().getMonth() + 1);
-  const [anio, setAnio] = useState(new Date().getFullYear());
+  const hoy = () => new Date().toISOString().split('T')[0];
+  const inicioMes = () => {
+    const d = new Date(); d.setDate(1);
+    return d.toISOString().split('T')[0];
+  };
+  const [desde, setDesde] = useState(inicioMes);
+  const [hasta, setHasta] = useState(hoy);
+  const [searchQuery, setSearchQuery] = useState('');
   const [personas, setPersonas] = useState([]);
   const [selectedPersona, setSelectedPersona] = useState(null);
   const [marcaciones, setMarcaciones] = useState([]);
-  const [resumen, setResumen] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [printModal, setPrintModal] = useState({ open: false, data: null, loading: false });
 
-  const fetchData = async () => {
+  const fetchPersonas = async () => {
+    if (!desde || !hasta) return;
     setLoading(true);
     try {
-      const [pers, res] = await Promise.all([
-        api.get(`/api/biometrico/asistencia-personas?mes=${mes}&anio=${anio}`),
-        api.get(`/api/biometrico/asistencia-mensual?mes=${mes}&anio=${anio}`),
-      ]);
-      setPersonas(pers.data);
-      setResumen(res.data);
+      const res = await api.get(`/api/biometrico/personas-por-rango?desde=${desde}&hasta=${hasta}`);
+      setPersonas(res.data);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchData(); }, [mes, anio]);
+  useEffect(() => { fetchPersonas(); }, [desde, hasta]);
 
-  const fetchMarcaciones = async (personalId) => {
+  const handleSelectPersona = async (personalId) => {
+    setSelectedPersona(personalId);
     try {
-      const res = await api.get(`/api/biometrico/marcaciones/${personalId}?mes=${mes}&anio=${anio}`);
+      const res = await api.get(`/api/biometrico/marcaciones-por-rango/${personalId}?desde=${desde}&hasta=${hasta}`);
       setMarcaciones(res.data);
-      setSelectedPersona(personalId);
     } catch (e) { console.error(e); }
   };
 
-  const meses = [
-    { id: 1, nombre: 'Enero' }, { id: 2, nombre: 'Febrero' }, { id: 3, nombre: 'Marzo' },
-    { id: 4, nombre: 'Abril' }, { id: 5, nombre: 'Mayo' }, { id: 6, nombre: 'Junio' },
-    { id: 7, nombre: 'Julio' }, { id: 8, nombre: 'Agosto' }, { id: 9, nombre: 'Septiembre' },
-    { id: 10, nombre: 'Octubre' }, { id: 11, nombre: 'Noviembre' }, { id: 12, nombre: 'Diciembre' }
-  ];
+  const handlePrintPreview = async (personalId) => {
+    setPrintModal({ open: true, data: null, loading: true });
+    try {
+      const res = await api.get(`/api/biometrico/datos-impresion/${personalId}?desde=${desde}&hasta=${hasta}`);
+      setPrintModal({ open: true, data: res.data, loading: false });
+    } catch (e) {
+      showStatus('error', e.response?.data?.error || e.message);
+      setPrintModal({ open: false, data: null, loading: false });
+    }
+  };
+
+  const filteredPersonas = personas.filter(p =>
+    !searchQuery ||
+    `${p.primer_nombre} ${p.apellido_paterno} ${p.apellido_materno || ''} ${p.ci}`
+      .toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const personaActual = personas.find(p => p.id === selectedPersona);
 
   return (
     <div className="space-y-6">
       {/* Filtros */}
       <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-wrap gap-4 items-end">
-        <div className="w-44 space-y-2">
-          <label className="text-xs font-bold text-slate-400 uppercase">Mes</label>
-          <select value={mes} onChange={e => setMes(parseInt(e.target.value))}
-            className="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500">
-            {meses.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
-          </select>
+        <div className="w-56 space-y-2">
+          <label className="text-xs font-bold text-slate-400 uppercase">Buscar</label>
+          <div className="relative">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Nombre o CI..."
+              className="w-full pl-9 pr-4 py-3 bg-slate-50 border-none rounded-2xl text-sm focus:ring-2 focus:ring-blue-500" />
+          </div>
         </div>
-        <div className="w-32 space-y-2">
-          <label className="text-xs font-bold text-slate-400 uppercase">Año</label>
-          <input type="number" value={anio} onChange={e => setAnio(parseInt(e.target.value))}
-            className="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500" />
+        <div className="w-44 space-y-2">
+          <label className="text-xs font-bold text-slate-400 uppercase">Desde</label>
+          <input type="date" value={desde} onChange={e => { setDesde(e.target.value); setSelectedPersona(null); }}
+            className="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl text-sm focus:ring-2 focus:ring-blue-500" />
+        </div>
+        <div className="w-44 space-y-2">
+          <label className="text-xs font-bold text-slate-400 uppercase">Hasta</label>
+          <input type="date" value={hasta} onChange={e => { setHasta(e.target.value); setSelectedPersona(null); }}
+            className="w-full px-4 py-3 bg-slate-50 border-none rounded-2xl text-sm focus:ring-2 focus:ring-blue-500" />
         </div>
       </div>
 
@@ -821,19 +843,19 @@ const AttendanceTab = ({ showStatus }) => {
           <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
             <div className="p-6 border-b border-slate-100">
               <h3 className="font-bold text-slate-800">Personal con Asistencia</h3>
-              <p className="text-xs text-slate-400 mt-1">{personas.length} registrados</p>
+              <p className="text-xs text-slate-400 mt-1">{filteredPersonas.length} de {personas.length} registrados</p>
             </div>
             <div className="divide-y divide-slate-50 max-h-[500px] overflow-y-auto">
               {loading ? (
                 <div className="p-8 text-center text-slate-400">Cargando...</div>
-              ) : personas.length === 0 ? (
+              ) : filteredPersonas.length === 0 ? (
                 <div className="p-8 text-center text-slate-400">
                   <Clock size={32} className="mx-auto mb-2 opacity-30" />
-                  Sin datos para este período
+                  {personas.length === 0 ? 'Sin datos en este rango' : 'Sin resultados'}
                 </div>
               ) : (
-                personas.map(p => (
-                  <button key={p.id} onClick={() => fetchMarcaciones(p.id)}
+                filteredPersonas.map(p => (
+                  <button key={p.id} onClick={() => handleSelectPersona(p.id)}
                     className={`w-full text-left px-6 py-4 hover:bg-slate-50 transition-colors flex items-center gap-3 ${
                       selectedPersona === p.id ? 'bg-blue-50 border-l-4 border-blue-600' : ''
                     }`}>
@@ -851,21 +873,37 @@ const AttendanceTab = ({ showStatus }) => {
           </div>
         </div>
 
-        {/* Marcaciones del día */}
+        {/* Marcaciones */}
         <div className="lg:col-span-2">
           <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
             <div className="p-6 border-b border-slate-100">
-              <h3 className="font-bold text-slate-800">
-                {selectedPersona ? 'Marcaciones del Empleado' : 'Selecciona un empleado'}
-              </h3>
-              {selectedPersona && (
-                <p className="text-xs text-slate-400 mt-1">{marcaciones.length} registros en {meses.find(m => m.id === mes)?.nombre} {anio}</p>
-              )}
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="font-bold text-slate-800">
+                    {selectedPersona ? `Marcaciones de ${personaActual?.primer_nombre || ''} ${personaActual?.apellido_paterno || ''}` : 'Selecciona un empleado'}
+                  </h3>
+                  {selectedPersona && (
+                    <p className="text-xs text-slate-400 mt-1">{marcaciones.length} registros del {new Date(desde).toLocaleDateString()} al {new Date(hasta).toLocaleDateString()}</p>
+                  )}
+                </div>
+                {selectedPersona && marcaciones.length > 0 && (
+                  <button onClick={() => handlePrintPreview(selectedPersona)}
+                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-colors">
+                    <FileSpreadsheet size={16} />
+                    Previsualizar / Imprimir
+                  </button>
+                )}
+              </div>
             </div>
             {!selectedPersona ? (
               <div className="p-12 text-center text-slate-300">
                 <BarChart3 size={48} className="mx-auto mb-4 opacity-20" />
                 Selecciona un empleado de la lista para ver sus marcaciones
+              </div>
+            ) : marcaciones.length === 0 ? (
+              <div className="p-12 text-center text-slate-400">
+                <Clock size={32} className="mx-auto mb-2 opacity-30" />
+                Sin marcaciones en este rango de fechas
               </div>
             ) : (
               <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
@@ -910,6 +948,112 @@ const AttendanceTab = ({ showStatus }) => {
           </div>
         </div>
       </div>
+
+      {/* Modal de previsualización de impresión */}
+      {printModal.open && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 print:bg-white print:p-0">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col print:shadow-none print:rounded-none print:max-h-none print:h-auto">
+            {/* Header */}
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center print:hidden">
+              <h2 className="font-bold text-slate-800 text-lg">Previsualizar Marcaciones</h2>
+              <div className="flex gap-2">
+                <button onClick={() => window.print()}
+                  className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors flex items-center gap-2">
+                  <FileSpreadsheet size={16} />
+                  Imprimir
+                </button>
+                <button onClick={() => setPrintModal({ open: false, data: null, loading: false })}
+                  className="px-5 py-2.5 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-colors">
+                  Cerrar
+                </button>
+              </div>
+            </div>
+
+            {/* Contenido imprimible */}
+            <div className="p-8 overflow-y-auto print:p-4 print:overflow-visible">
+              {printModal.loading ? (
+                <div className="text-center py-12 text-slate-400">Cargando datos para impresión...</div>
+              ) : printModal.data ? (
+                <>
+                  {/* Encabezado del reporte */}
+                  <div className="text-center mb-8 print:mb-6">
+                    <h1 className="text-2xl font-black text-slate-800 print:text-lg">Hospital de Barrios Mineros</h1>
+                    <p className="text-slate-500 text-sm mt-1">Reporte de Marcaciones Biométricas</p>
+                  </div>
+
+                  {/* Datos del empleado */}
+                  <div className="grid grid-cols-2 gap-4 mb-6 p-4 bg-slate-50 rounded-2xl print:bg-transparent print:p-0 print:mb-4">
+                    <div>
+                      <span className="text-xs font-bold text-slate-400 uppercase">Empleado</span>
+                      <p className="font-bold text-slate-800">{printModal.data.personal.primer_nombre} {printModal.data.personal.apellido_paterno} {printModal.data.personal.apellido_materno || ''}</p>
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-slate-400 uppercase">CI</span>
+                      <p className="font-bold text-slate-800">{printModal.data.personal.ci}</p>
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-slate-400 uppercase">ID Biométrico</span>
+                      <p className="font-bold text-slate-800">{printModal.data.personal.biometrico_id}</p>
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-slate-400 uppercase">Rango</span>
+                      <p className="font-bold text-slate-800">{new Date(printModal.data.resumen.desde).toLocaleDateString()} — {new Date(printModal.data.resumen.hasta).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+
+                  {/* Resumen */}
+                  <div className="flex gap-4 mb-6 print:mb-4">
+                    <div className="px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-sm font-bold">
+                      Entradas: {printModal.data.resumen.entradas}
+                    </div>
+                    <div className="px-4 py-2 bg-blue-50 text-blue-600 rounded-xl text-sm font-bold">
+                      Salidas: {printModal.data.resumen.salidas}
+                    </div>
+                    <div className="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-sm font-bold">
+                      Total: {printModal.data.resumen.total}
+                    </div>
+                  </div>
+
+                  {/* Tabla de marcaciones */}
+                  <table className="w-full text-left print:text-sm">
+                    <thead>
+                      <tr className="border-b-2 border-slate-200 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                        <th className="py-3 pr-4">#</th>
+                        <th className="py-3 pr-4">Fecha</th>
+                        <th className="py-3 pr-4">Hora</th>
+                        <th className="py-3 pr-4">Tipo</th>
+                        <th className="py-3">Origen</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {printModal.data.marcaciones.map((m, i) => (
+                        <tr key={i} className="border-b border-slate-100">
+                          <td className="py-3 pr-4 text-slate-400 font-mono text-sm">{i + 1}</td>
+                          <td className="py-3 pr-4 font-bold text-slate-700">{new Date(m.timestamp).toLocaleDateString()}</td>
+                          <td className="py-3 pr-4 font-mono text-slate-600">{new Date(m.timestamp).toLocaleTimeString()}</td>
+                          <td className="py-3 pr-4">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                              m.estado_asistencia === 0 ? 'text-emerald-600' : 'text-blue-600'
+                            }`}>
+                              {m.estado_asistencia === 0 ? 'Entrada' : 'Salida'}
+                            </span>
+                          </td>
+                          <td className="py-3 text-slate-500 text-sm">{m.origen}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+
+                  {/* Pie */}
+                  <div className="mt-8 text-center text-xs text-slate-400 print:mt-4">
+                    Generado el {new Date().toLocaleString()} — Sistema RRHH Barrios Mineros
+                  </div>
+                </>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

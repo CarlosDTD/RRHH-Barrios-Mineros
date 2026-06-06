@@ -125,8 +125,8 @@ class BiometricoImportService {
           `, [
             String(reg.emp_pin),
             reg.punch_time,
-            reg.workstate ?? 0,
             reg.workcode ?? 0,
+            reg.workstate ?? 0,
             'SQLITE_IMPORT',
             'HISTORICO'
           ]);

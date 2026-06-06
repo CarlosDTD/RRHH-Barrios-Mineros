@@ -245,6 +245,41 @@ class BiometricoController {
     }
   }
 
+  static async getPersonasPorRango(req, res) {
+    try {
+      const { desde, hasta } = req.query;
+      if (!desde || !hasta) return res.status(400).json({ error: 'desde y hasta requeridos' });
+      const data = await BiometricoAsistenciaService.getPersonasPorRango(desde, hasta);
+      res.json(data);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async getMarcacionesPorRango(req, res) {
+    try {
+      const personalId = parseInt(req.params.personalId);
+      const { desde, hasta } = req.query;
+      if (!desde || !hasta) return res.status(400).json({ error: 'desde y hasta requeridos' });
+      const data = await BiometricoAsistenciaService.getMarcacionesPorRango(personalId, desde, hasta);
+      res.json(data);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async getDatosImpresion(req, res) {
+    try {
+      const personalId = parseInt(req.params.personalId);
+      const { desde, hasta } = req.query;
+      if (!desde || !hasta) return res.status(400).json({ error: 'desde y hasta requeridos' });
+      const data = await BiometricoAsistenciaService.getDatosImpresion(personalId, desde, hasta);
+      res.json(data);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
   // ============= TURNOS =============
 
   static async getTurnos(req, res) {

@@ -87,6 +87,68 @@ class BiometricoAsistenciaService {
 
     return result.rows;
   }
+
+  static async getPersonasPorRango(desde, hasta) {
+    const result = await db.query(`
+      SELECT DISTINCT
+        p.id,
+        p.ci,
+        p.primer_nombre,
+        p.apellido_paterno,
+        p.apellido_materno
+      FROM biometrico_logs_raw l
+      INNER JOIN personal p ON p.biometrico_id = l.biometrico_id
+      WHERE l.timestamp::DATE >= $1 AND l.timestamp::DATE <= $2
+      ORDER BY p.apellido_paterno
+    `, [desde, hasta]);
+
+    return result.rows;
+  }
+
+  static async getMarcacionesPorRango(personalId, desde, hasta) {
+    const result = await db.query(`
+      SELECT 
+        l.timestamp,
+        l.timestamp::DATE as fecha,
+        l.timestamp::TIME as hora,
+        l.verificacion_tipo,
+        l.estado_asistencia,
+        l.origen
+      FROM biometrico_logs_raw l
+      INNER JOIN personal p ON p.biometrico_id = l.biometrico_id
+      WHERE p.id = $1
+        AND l.timestamp::DATE >= $2
+        AND l.timestamp::DATE <= $3
+      ORDER BY l.timestamp ASC
+    `, [personalId, desde, hasta]);
+
+    return result.rows;
+  }
+
+  static async getDatosImpresion(personalId, desde, hasta) {
+    const personal = await db.query(`
+      SELECT id, ci, primer_nombre, apellido_paterno, apellido_materno, biometrico_id
+      FROM personal WHERE id = $1
+    `, [personalId]);
+
+    if (personal.rows.length === 0) throw new Error('Personal no encontrado');
+
+    const marcaciones = await this.getMarcacionesPorRango(personalId, desde, hasta);
+
+    const resumen = {
+      total: marcaciones.length,
+      entradas: marcaciones.filter(m => m.estado_asistencia === 0).length,
+      salidas: marcaciones.filter(m => m.estado_asistencia === 1).length,
+      desde,
+      hasta,
+    };
+
+    return {
+      personal: personal.rows[0],
+      marcaciones,
+      resumen,
+    };
+  }
 }
 
 module.exports = BiometricoAsistenciaService;
